@@ -1,0 +1,133 @@
+/* ---------- Basic page settings ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+  color: #1f2a24;
+  background: #f4f7f3;
+}
+
+.container {
+  width: min(1100px, 92%);
+  margin: 0 auto;
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  padding: 48px 0;
+  color: white;
+  background: #245b36;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ---------- Main content ---------- */
+
+main {
+  padding: 36px 0 56px;
+}
+
+.intro {
+  margin-bottom: 36px;
+}
+
+.status {
+  margin: 18px 0 8px;
+  padding: 14px 16px;
+  border-left: 5px solid #245b36;
+  background: white;
+  border-radius: 6px;
+}
+
+.status.error {
+  border-left-color: #b42318;
+}
+
+.updated-time {
+  color: #59645d;
+}
+
+.refresh-button {
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 6px;
+  color: white;
+  background: #245b36;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.refresh-button:hover {
+  background: #194328;
+}
+
+.refresh-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* ---------- Forecast cards ---------- */
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+}
+
+.forecast-card {
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(28, 52, 35, 0.09);
+}
+
+.forecast-card h3 {
+  margin-top: 0;
+}
+
+.temperature {
+  margin: 8px 0;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.forecast-detail {
+  margin: 7px 0;
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  padding: 24px 0;
+  color: white;
+  background: #1d3527;
+}
+
+/* ---------- Smaller screens ---------- */
+
+@media (max-width: 520px) {
+  .site-header {
+    padding: 34px 0;
+  }
+
+  main {
+    padding-top: 24px;
+  }
+}

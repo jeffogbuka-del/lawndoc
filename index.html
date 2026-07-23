@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Makes the page fit properly on phones and tablets -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Lawn Weather Outlook</title>
+
+  <!-- Connect this page to the separate CSS file -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="eyebrow">Local lawn weather</p>
+      <h1>Lawn Weather Outlook</h1>
+      <p id="service-area">Loading service area...</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro">
+      <h2>National Weather Service Forecast</h2>
+      <p>
+        This page retrieves the latest forecast automatically from the
+        National Weather Service.
+      </p>
+
+      <!-- JavaScript changes this text while the forecast is loading -->
+      <div id="status" class="status" aria-live="polite">
+        Loading the latest forecast...
+      </div>
+
+      <p id="last-updated" class="updated-time"></p>
+
+      <button id="refresh-button" class="refresh-button" type="button">
+        Refresh forecast
+      </button>
+    </section>
+
+    <section aria-labelledby="forecast-heading">
+      <h2 id="forecast-heading">Upcoming Forecast</h2>
+
+      <!-- JavaScript creates the weather cards inside this container -->
+      <div id="forecast-grid" class="forecast-grid"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        Weather data: National Weather Service. This starter page displays
+        general forecast information only.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Load JavaScript last so the HTML exists before the script runs -->
+  <script src="script.js"></script>
+</body>
+</html>
