@@ -9,7 +9,7 @@
 <body>
   <header class="site-header">
     <div class="container">
-      <p class="eyebrow">Local lawn weather</p>
+      <p class="eyebrow">Local lawn intelligence</p>
       <h1>Local Lawn Weather Outlook</h1>
       <p id="service-area">Loading service area...</p>
     </div>
@@ -18,10 +18,17 @@
   <main class="container">
     <section class="intro">
       <h2>National Weather Service Forecast</h2>
-      <p>This page retrieves the latest forecast automatically from the National Weather Service.</p>
-      <div id="status" class="status" aria-live="polite">Loading the latest forecast...</div>
+      <p>
+        The forecast and disease outlook below update from National Weather
+        Service grid data for the selected service location.
+      </p>
+      <div id="status" class="status" aria-live="polite">
+        Loading the latest forecast...
+      </div>
       <p id="last-updated" class="updated-time"></p>
-      <button id="refresh-button" class="refresh-button" type="button">Refresh forecast</button>
+      <button id="refresh-button" class="refresh-button" type="button">
+        Refresh forecast
+      </button>
     </section>
 
     <section aria-labelledby="forecast-heading">
@@ -29,18 +36,30 @@
       <div id="forecast-grid" class="forecast-grid"></div>
     </section>
 
-    <section class="analysis-section" aria-labelledby="analysis-heading">
+    <section class="disease-section" aria-labelledby="disease-heading">
       <div class="section-heading-row">
         <div>
-          <p class="eyebrow dark-eyebrow">Development view</p>
-          <h2 id="analysis-heading">Weather Feature Engine</h2>
+          <p class="eyebrow dark-eyebrow">Weather-based outlook</p>
+          <h2 id="disease-heading">Lawn Disease Risk</h2>
         </div>
-        <span class="dev-badge">Temporary</span>
       </div>
 
-      <p class="analysis-note">
-        These are weather features calculated from the NWS raw grid forecast.
-        They are not disease predictions yet.
+      <p class="section-note">
+        These results estimate environmental favorability from weather data.
+        They do not diagnose disease on an individual lawn.
+      </p>
+
+      <div id="disease-grid" class="disease-grid">
+        <div class="loading-card">Calculating disease risk...</div>
+      </div>
+    </section>
+
+    <details class="developer-panel">
+      <summary>Developer weather validation</summary>
+      <p>
+        This panel is for model validation. It shows the NWS-derived features
+        feeding the disease rules and can be removed from the customer-facing
+        version later.
       </p>
 
       <div id="data-availability" class="availability-grid"></div>
@@ -62,37 +81,26 @@
             </tr>
           </thead>
           <tbody id="metrics-body">
-            <tr><td colspan="10">Loading weather metrics...</td></tr>
+            <tr>
+              <td colspan="10">Loading weather metrics...</td>
+            </tr>
           </tbody>
         </table>
       </div>
 
       <p class="fine-print">
-        *NWS quantitative precipitation forecasts are accumulation periods. Window totals shown
-        here proportionally allocate an accumulation period if it overlaps the edge of a
-        24/48/72-hour window. This is for feature testing, not a measured rain total.
+        *QPF is forecast liquid precipitation. NWS QPF values are accumulation
+        periods; edge-overlapping periods are proportionally allocated for
+        this development view.
       </p>
-
-      <details class="details-box">
-        <summary>What this panel is testing</summary>
-        <ul>
-          <li>Hourly temperature</li>
-          <li>Relative humidity and duration above selected thresholds</li>
-          <li>Dew point and temperature–dew-point spread</li>
-          <li>Forecast liquid precipitation</li>
-          <li>Wind speed</li>
-          <li>Sky cover and precipitation probability availability</li>
-          <li>24-, 48-, and 72-hour forecast windows</li>
-        </ul>
-      </details>
-    </section>
+    </details>
   </main>
 
   <footer class="site-footer">
     <div class="container">
       <p>
-        Weather data: National Weather Service. Lawn-health predictions will be added only
-        after the weather inputs and disease models have been validated.
+        Weather data: National Weather Service. Disease results represent
+        weather-based environmental risk, not a confirmed lawn diagnosis.
       </p>
     </div>
   </footer>
