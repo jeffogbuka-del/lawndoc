@@ -18,16 +18,37 @@
 */
 
 // ---------------------------------------------------------------------------
-// 1. SERVICE LOCATION
+// 1. SELECTABLE SERVICE LOCATIONS
 // ---------------------------------------------------------------------------
 
-const SERVICE_LOCATION = {
-  name: "Lubbock, Texas",
-  latitude: 33.5779,
-  longitude: -101.8552
+// Representative points for the first four service regions.
+// Maryland and Virginia use their state capitals for this first version.
+const LOCATIONS = {
+  "washington-dc": {
+    name: "Washington, DC",
+    latitude: 38.9072,
+    longitude: -77.0369
+  },
+  maryland: {
+    name: "Maryland — Annapolis",
+    latitude: 38.9784,
+    longitude: -76.4922
+  },
+  virginia: {
+    name: "Virginia — Richmond",
+    latitude: 37.5407,
+    longitude: -77.4360
+  },
+  dallas: {
+    name: "Dallas, Texas",
+    latitude: 32.7767,
+    longitude: -96.7970
+  }
 };
 
-const NUMBER_OF_FORECAST_CARDS = 6;
+let selectedLocationKey = "washington-dc";
+
+const NUMBER_OF_FORECAST_CARDS = 5;
 const HOUR_MS = 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
@@ -39,11 +60,13 @@ const statusElement = document.getElementById("status");
 const lastUpdatedElement = document.getElementById("last-updated");
 const forecastGridElement = document.getElementById("forecast-grid");
 const refreshButton = document.getElementById("refresh-button");
+const locationSelectElement = document.getElementById("location-select");
 const diseaseGridElement = document.getElementById("disease-grid");
 const dataAvailabilityElement = document.getElementById("data-availability");
 const metricsBodyElement = document.getElementById("metrics-body");
 
-serviceAreaElement.textContent = SERVICE_LOCATION.name;
+locationSelectElement.value = selectedLocationKey;
+serviceAreaElement.textContent = LOCATIONS[selectedLocationKey].name;
 
 // ---------------------------------------------------------------------------
 // 3. HTTP HELPER
@@ -74,9 +97,12 @@ async function loadWeather() {
   clearError();
 
   try {
+    const serviceLocation = LOCATIONS[selectedLocationKey];
+    serviceAreaElement.textContent = serviceLocation.name;
+
     const pointsUrl =
       `https://api.weather.gov/points/` +
-      `${SERVICE_LOCATION.latitude},${SERVICE_LOCATION.longitude}`;
+      `${serviceLocation.latitude},${serviceLocation.longitude}`;
 
     const pointsData = await getJson(pointsUrl);
 
@@ -1156,6 +1182,7 @@ function displayFeatureWindows(properties, hourlyRecords) {
 
 function setLoadingState(isLoading) {
   refreshButton.disabled = isLoading;
+  locationSelectElement.disabled = isLoading;
 
   if (isLoading) {
     refreshButton.textContent = "Loading...";
@@ -1182,5 +1209,18 @@ function clearError() {
 loadWeather();
 
 refreshButton.addEventListener("click", loadWeather);
+
+locationSelectElement.addEventListener("change", (event) => {
+  selectedLocationKey = event.target.value;
+  serviceAreaElement.textContent = LOCATIONS[selectedLocationKey].name;
+
+  // Clear the prior location's results while the new NWS request runs.
+  forecastGridElement.innerHTML = "";
+  diseaseGridElement.innerHTML =
+    `<div class="loading-card">Recalculating disease risk...</div>`;
+  lastUpdatedElement.textContent = "";
+
+  loadWeather();
+});
 
 setInterval(loadWeather, 30 * 60 * 1000);

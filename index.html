@@ -22,6 +22,21 @@
         The forecast and disease outlook below update from National Weather
         Service grid data for the selected service location.
       </p>
+
+      <div class="location-control">
+        <label for="location-select">Forecast location</label>
+        <select id="location-select">
+          <option value="washington-dc">Washington, DC</option>
+          <option value="maryland">Maryland — Annapolis</option>
+          <option value="virginia">Virginia — Richmond</option>
+          <option value="dallas">Dallas, Texas</option>
+        </select>
+        <p class="location-help">
+          Changing the location refreshes the forecast and recalculates all
+          disease-risk results on this page.
+        </p>
+      </div>
+
       <div id="status" class="status" aria-live="polite">
         Loading the latest forecast...
       </div>
