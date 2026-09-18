@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#153d2a">
-  <meta name="description" content="Local weather translated into early indicators of turf disease pressure.">
-  <title>Lawn Health Weather Intelligence</title>
+  <meta name="description" content="Local weather translated into practical lawn health insight.">
+  <title>Lawn Doctor | Lawn Health Outlook</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,10 +15,10 @@
 
     <div class="container hero-inner">
       <nav class="topbar" aria-label="Site navigation">
-        <a class="brand" href="#top" aria-label="Lawn Health Weather Intelligence home">
-          <span class="brand-mark" aria-hidden="true">L</span>
+        <a class="brand" href="#top" aria-label="Lawn Doctor home">
+          <span class="brand-mark" aria-hidden="true">LD</span>
           <span>
-            <strong>Lawn Health</strong>
+            <strong>LAWN DOCTOR</strong>
             <small>Weather Intelligence</small>
           </span>
         </a>
@@ -26,11 +26,11 @@
       </nav>
 
       <div class="hero-copy" id="top">
-        <p class="eyebrow light">Early awareness for healthier turf</p>
-        <h1>See lawn disease pressure <span>before it becomes visible.</span></h1>
+        <p class="eyebrow light">Weather-informed lawn care</p>
+        <h1>Turning Local Weather Into <span>Lawn Health Insight.</span></h1>
         <p class="hero-subtitle">
-          Local weather translated into practical, forward-looking turf disease
-          risk using National Weather Service forecast data.
+          Monitor changing weather conditions and understand when lawns may become
+          more vulnerable to stress and disease.
         </p>
       </div>
 
@@ -72,10 +72,9 @@
             <form id="zip-form" class="zip-form" novalidate>
               <label for="zip-input">U.S. ZIP code</label>
               <div class="zip-row">
-                <input id="zip-input" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="e.g. 20001" aria-describedby="zip-help zip-error">
+                <input id="zip-input" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="e.g. 20001" aria-describedby="zip-error">
                 <button id="zip-submit" type="submit">View outlook</button>
               </div>
-              <p id="zip-help" class="location-help">ZIP codes are converted to a representative latitude/longitude before requesting NWS data.</p>
               <p id="zip-error" class="form-error" role="alert"></p>
             </form>
           </div>
@@ -97,7 +96,7 @@
             <div>
               <p class="mini-label">Lawn health outlook</p>
               <h2>Evaluating conditions</h2>
-              <p class="outlook-copy">Weather-based disease pressure will appear here.</p>
+              <p class="outlook-copy">Your weather-based lawn health outlook will appear here.</p>
             </div>
             <div class="overall-risk risk-neutral" id="overall-risk-badge">—</div>
           </article>
@@ -132,7 +131,7 @@
         <div class="section-title-row">
           <div>
             <p class="eyebrow dark">Weather-based outlook</p>
-            <h2 id="disease-heading">Disease Pressure</h2>
+            <h2 id="disease-heading">Disease Favorability</h2>
           </div>
           <p class="section-note">
             Risk describes weather favorability. Confidence reflects how well
@@ -141,7 +140,7 @@
         </div>
 
         <div id="disease-grid" class="disease-grid">
-          <div class="loading-card">Calculating disease pressure...</div>
+          <div class="loading-card">Calculating lawn health outlook...</div>
         </div>
       </div>
     </section>
@@ -150,7 +149,7 @@
       <div class="container method-grid">
         <div>
           <p class="eyebrow dark">Built for transparency</p>
-          <h2>Weather risk, not a diagnosis.</h2>
+          <h2>Environmental risk, not a diagnosis.</h2>
         </div>
         <p>
           The outlook identifies forecast conditions that may favor turf disease.
@@ -163,11 +162,10 @@
     <section class="developer-section">
       <div class="container">
         <details class="developer-panel">
-          <summary>Developer weather validation</summary>
+          <summary>Technical Weather Details</summary>
           <p>
-            This panel exposes the NWS-derived features used by the current
-            disease rules. It is retained for model verification and can be
-            removed from a production customer view.
+            This panel shows the NWS-derived weather features used by the current
+            disease rules and is retained for technical review.
           </p>
 
           <div id="data-availability" class="availability-grid"></div>
@@ -206,12 +204,11 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div>
-        <strong>Lawn Health Weather Intelligence</strong>
+        <strong>LAWN DOCTOR</strong>
         <p>Early environmental awareness for proactive lawn care.</p>
       </div>
       <p>
-        Weather data from the National Weather Service. ZIP lookup uses a
-        representative postal-code coordinate. Disease results indicate
+        Weather data from the National Weather Service. Disease results indicate
         environmental favorability, not confirmed diagnosis.
       </p>
     </div>
