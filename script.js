@@ -1,52 +1,51 @@
 /*
-  LAWN WEATHER DISEASE ENGINE - VERSION 3
-  ---------------------------------------
-  MVP diseases:
-    - Brown Patch
-    - Pythium Blight
-    - Dollar Spot
-    - Gray Leaf Spot
-    - Red Thread
-    - Rust
+  LAWN HEALTH WEATHER INTELLIGENCE - SPONSOR DEMO VERSION 5
+  ---------------------------------------------------------
+  Sponsor-facing improvements:
+    - Four preset regions plus U.S. ZIP lookup
+    - ZIP -> representative coordinates -> NWS /points workflow
+    - Five-period forecast cards
+    - Responsive mobile presentation
+    - Overall lawn health outlook
+    - Expandable disease cards with risk, confidence, trend, and drivers
 
-  Customer-facing disease cards show ONLY:
-    - Risk
-    - Prediction Confidence
-
-  IMPORTANT:
-  Risk means weather-based environmental favorability, not diagnosis.
+  Disease risk logic remains weather-based environmental favorability,
+  not diagnosis of disease on a specific lawn.
 */
 
 // ---------------------------------------------------------------------------
-// 1. SELECTABLE SERVICE LOCATIONS
+// 1. LOCATIONS + APPLICATION STATE
 // ---------------------------------------------------------------------------
 
-// Representative points for the first four service regions.
-// Maryland and Virginia use their state capitals for this first version.
 const LOCATIONS = {
   "washington-dc": {
     name: "Washington, DC",
     latitude: 38.9072,
-    longitude: -77.0369
+    longitude: -77.0369,
+    source: "Preset region"
   },
   maryland: {
     name: "Maryland — Annapolis",
     latitude: 38.9784,
-    longitude: -76.4922
+    longitude: -76.4922,
+    source: "Preset region"
   },
   virginia: {
     name: "Virginia — Richmond",
     latitude: 37.5407,
-    longitude: -77.4360
+    longitude: -77.4360,
+    source: "Preset region"
   },
   dallas: {
     name: "Dallas, Texas",
     latitude: 32.7767,
-    longitude: -96.7970
+    longitude: -96.7970,
+    source: "Preset region"
   }
 };
 
 let selectedLocationKey = "washington-dc";
+let activeLocation = { ...LOCATIONS[selectedLocationKey] };
 
 const NUMBER_OF_FORECAST_CARDS = 5;
 const HOUR_MS = 60 * 60 * 1000;
@@ -56,23 +55,36 @@ const HOUR_MS = 60 * 60 * 1000;
 // ---------------------------------------------------------------------------
 
 const serviceAreaElement = document.getElementById("service-area");
+const summaryLocationElement = document.getElementById("summary-location");
 const statusElement = document.getElementById("status");
+const statusTextElement = statusElement.querySelector("span:last-child");
 const lastUpdatedElement = document.getElementById("last-updated");
-const forecastGridElement = document.getElementById("forecast-grid");
 const refreshButton = document.getElementById("refresh-button");
 const locationSelectElement = document.getElementById("location-select");
+const zipFormElement = document.getElementById("zip-form");
+const zipInputElement = document.getElementById("zip-input");
+const zipSubmitElement = document.getElementById("zip-submit");
+const zipErrorElement = document.getElementById("zip-error");
+const regionTabElement = document.getElementById("region-tab");
+const zipTabElement = document.getElementById("zip-tab");
+const regionPanelElement = document.getElementById("region-panel");
+const zipPanelElement = document.getElementById("zip-panel");
+const forecastDetailsElement = document.getElementById("forecast-details");
+const forecastGridElement = document.getElementById("forecast-grid");
 const diseaseGridElement = document.getElementById("disease-grid");
+const overallOutlookElement = document.getElementById("overall-outlook");
+const overallRiskBadgeElement = document.getElementById("overall-risk-badge");
 const dataAvailabilityElement = document.getElementById("data-availability");
 const metricsBodyElement = document.getElementById("metrics-body");
 
 locationSelectElement.value = selectedLocationKey;
-serviceAreaElement.textContent = LOCATIONS[selectedLocationKey].name;
+updateLocationLabels();
 
 // ---------------------------------------------------------------------------
-// 3. HTTP HELPER
+// 3. HTTP HELPERS
 // ---------------------------------------------------------------------------
 
-async function getJson(url) {
+async function getNwsJson(url) {
   const response = await fetch(url, {
     headers: {
       Accept: "application/geo+json"
@@ -81,15 +93,99 @@ async function getJson(url) {
 
   if (!response.ok) {
     throw new Error(
-      `Weather request failed: ${response.status} ${response.statusText}`
+      `NWS request failed: ${response.status} ${response.statusText}`
     );
   }
 
   return response.json();
 }
 
+async function getGenericJson(url) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const error = new Error(
+      `Lookup request failed: ${response.status} ${response.statusText}`
+    );
+    error.status = response.status;
+    throw error;
+  }
+
+  return response.json();
+}
+
 // ---------------------------------------------------------------------------
-// 4. MAIN LOAD
+// 4. LOCATION SELECTION
+// ---------------------------------------------------------------------------
+
+function updateLocationLabels() {
+  serviceAreaElement.textContent = activeLocation.name;
+  summaryLocationElement.textContent = activeLocation.name;
+}
+
+function setActiveLocation(location) {
+  activeLocation = { ...location };
+  updateLocationLabels();
+}
+
+function clearPreviousResults(message = "Recalculating disease pressure...") {
+  forecastGridElement.innerHTML = "";
+  diseaseGridElement.innerHTML = `<div class="loading-card">${message}</div>`;
+  overallRiskBadgeElement.textContent = "—";
+  overallRiskBadgeElement.className = "overall-risk risk-neutral";
+  lastUpdatedElement.textContent = "Retrieving NWS grid forecast...";
+}
+
+function switchLocationMode(mode) {
+  const regionActive = mode === "region";
+
+  regionTabElement.classList.toggle("is-active", regionActive);
+  zipTabElement.classList.toggle("is-active", !regionActive);
+  regionTabElement.setAttribute("aria-selected", String(regionActive));
+  zipTabElement.setAttribute("aria-selected", String(!regionActive));
+
+  regionPanelElement.hidden = !regionActive;
+  zipPanelElement.hidden = regionActive;
+  regionPanelElement.classList.toggle("is-active", regionActive);
+  zipPanelElement.classList.toggle("is-active", !regionActive);
+
+  if (!regionActive) {
+    window.setTimeout(() => zipInputElement.focus(), 50);
+  }
+}
+
+async function lookupZip(zip) {
+  const data = await getGenericJson(
+    `https://api.zippopotam.us/us/${encodeURIComponent(zip)}`
+  );
+
+  const place = data.places?.[0];
+
+  if (!place) {
+    throw new Error("No representative location was returned for that ZIP code.");
+  }
+
+  const latitude = Number(place.latitude);
+  const longitude = Number(place.longitude);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error("The ZIP lookup did not return usable coordinates.");
+  }
+
+  const state = place["state abbreviation"] || place.state || "";
+  const city = place["place name"] || `ZIP ${zip}`;
+
+  return {
+    name: `${city}${state ? `, ${state}` : ""} · ${zip}`,
+    latitude,
+    longitude,
+    source: "ZIP centroid",
+    zip
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 5. MAIN NWS LOAD
 // ---------------------------------------------------------------------------
 
 async function loadWeather() {
@@ -97,14 +193,13 @@ async function loadWeather() {
   clearError();
 
   try {
-    const serviceLocation = LOCATIONS[selectedLocationKey];
-    serviceAreaElement.textContent = serviceLocation.name;
+    updateLocationLabels();
 
     const pointsUrl =
       `https://api.weather.gov/points/` +
-      `${serviceLocation.latitude},${serviceLocation.longitude}`;
+      `${activeLocation.latitude},${activeLocation.longitude}`;
 
-    const pointsData = await getJson(pointsUrl);
+    const pointsData = await getNwsJson(pointsUrl);
 
     const forecastUrl = pointsData.properties.forecast;
     const gridDataUrl = pointsData.properties.forecastGridData;
@@ -115,12 +210,12 @@ async function loadWeather() {
     }
 
     const [forecastData, gridData] = await Promise.all([
-      getJson(forecastUrl),
-      getJson(gridDataUrl)
+      getNwsJson(forecastUrl),
+      getNwsJson(gridDataUrl)
     ]);
 
-    const periods =
-      forecastData.properties.periods.slice(0, NUMBER_OF_FORECAST_CARDS);
+    const periods = forecastData.properties.periods
+      .slice(0, NUMBER_OF_FORECAST_CARDS);
 
     displayForecast(periods);
 
@@ -135,12 +230,15 @@ async function loadWeather() {
 
     markEstimatedWetHours(hourlyRecords, qpfPeriods);
 
-    const diseaseResults = evaluateAllDiseases(
+    const baseResults = evaluateAllDiseases(hourlyRecords, timeZone);
+    const results = enrichDiseaseResults(
+      baseResults,
       hourlyRecords,
       timeZone
     );
 
-    displayDiseaseResults(diseaseResults);
+    displayDiseaseResults(results);
+    displayOverallOutlook(results);
     displayDataAvailability(gridData.properties, hourlyRecords);
     displayFeatureWindows(gridData.properties, hourlyRecords);
 
@@ -148,18 +246,18 @@ async function loadWeather() {
       gridData.properties.updateTime || forecastData.properties.updated;
 
     lastUpdatedElement.textContent = updateTime
-      ? `NWS grid forecast updated: ${new Date(updateTime).toLocaleString()}`
-      : `Page refreshed: ${new Date().toLocaleString()}`;
+      ? `NWS grid updated ${new Date(updateTime).toLocaleString()}`
+      : `Page refreshed ${new Date().toLocaleString()}`;
 
-    statusElement.textContent =
-      "NWS forecast and lawn disease risk calculations loaded successfully.";
-
+    setStatus(
+      `Forecast loaded for ${activeLocation.name}. Disease pressure has been recalculated.`
+    );
   } catch (error) {
     console.error("Weather/model loading error:", error);
 
     showError(
-      "The weather or disease outlook could not be loaded. Open the browser " +
-      "console for the detailed error, then try Refresh forecast."
+      "The weather or disease outlook could not be loaded for this location. " +
+      "Try Refresh data or select another location."
     );
 
     forecastGridElement.innerHTML = "";
@@ -168,14 +266,14 @@ async function loadWeather() {
     dataAvailabilityElement.innerHTML = "";
     metricsBodyElement.innerHTML =
       `<tr><td colspan="10">Weather metrics unavailable.</td></tr>`;
-    lastUpdatedElement.textContent = "";
+    lastUpdatedElement.textContent = "Weather data unavailable.";
   } finally {
     setLoadingState(false);
   }
 }
 
 // ---------------------------------------------------------------------------
-// 5. NORMAL FORECAST CARDS
+// 5A. FORECAST CARDS
 // ---------------------------------------------------------------------------
 
 function displayForecast(periods) {
@@ -188,34 +286,51 @@ function displayForecast(periods) {
     const card = document.createElement("article");
     card.className = "forecast-card";
 
-    const periodName = document.createElement("h3");
+    const periodName = document.createElement("p");
+    periodName.className = "forecast-period";
     periodName.textContent = period.name;
+
+    const main = document.createElement("div");
+    main.className = "forecast-main";
 
     const temperature = document.createElement("p");
     temperature.className = "temperature";
-    temperature.textContent =
-      `${period.temperature}°${period.temperatureUnit}`;
+    temperature.textContent = `${period.temperature}°${period.temperatureUnit}`;
+
+    main.appendChild(temperature);
+
+    if (period.icon) {
+      const icon = document.createElement("img");
+      icon.className = "forecast-icon";
+      icon.src = period.icon;
+      icon.alt = "";
+      icon.loading = "lazy";
+      main.appendChild(icon);
+    }
 
     const summary = document.createElement("p");
-    summary.className = "forecast-detail";
+    summary.className = "forecast-summary";
     summary.textContent = period.shortForecast;
 
-    const rain = document.createElement("p");
-    rain.className = "forecast-detail";
+    const meta = document.createElement("div");
+    meta.className = "forecast-meta";
+
+    const rain = document.createElement("span");
+    rain.className = "forecast-chip";
     rain.textContent = rainChance === "Not available"
-      ? "Rain chance: Not available"
-      : `Rain chance: ${rainChance}%`;
+      ? "Rain —"
+      : `Rain ${rainChance}%`;
 
-    const wind = document.createElement("p");
-    wind.className = "forecast-detail";
-    wind.textContent = `Wind: ${period.windSpeed} ${period.windDirection}`;
+    const wind = document.createElement("span");
+    wind.className = "forecast-chip";
+    wind.textContent = `${period.windSpeed} ${period.windDirection}`;
 
-    card.append(periodName, temperature, summary, rain, wind);
+    meta.append(rain, wind);
+    card.append(periodName, main, summary, meta);
     forecastGridElement.appendChild(card);
   });
 }
 
-// ---------------------------------------------------------------------------
 // 6. NWS INTERVAL PARSING
 // ---------------------------------------------------------------------------
 
@@ -984,7 +1099,10 @@ function evaluateRust(records) {
 }
 
 // ---------------------------------------------------------------------------
-// 17. RUN ALL DISEASE MODELS
+
+
+// ---------------------------------------------------------------------------
+// 17. RUN + ENRICH DISEASE MODELS
 // ---------------------------------------------------------------------------
 
 function evaluateAllDiseases(records, timeZone) {
@@ -1002,46 +1120,328 @@ function riskClass(risk) {
   return `risk-${risk.toLowerCase()}`;
 }
 
+function confidenceRank(confidence) {
+  return { Low: 0, Moderate: 1, High: 2 }[confidence] ?? 0;
+}
+
+function pressureCount(disease, records) {
+  return countWhere(records, (r) => {
+    if (r.temperatureF === null) return false;
+
+    switch (disease) {
+      case "Brown Patch":
+        return r.temperatureF >= 65 && r.temperatureF <= 90 &&
+          r.rh !== null && r.rh >= 85;
+      case "Pythium Blight":
+        return r.temperatureF > 68 && r.rh !== null && r.rh > 90;
+      case "Dollar Spot":
+        return r.temperatureF >= 60 && r.temperatureF <= 85 &&
+          r.rh !== null && r.rh >= 80;
+      case "Gray Leaf Spot":
+        return r.temperatureF >= 68 && r.temperatureF <= 90 && r.estimatedWet;
+      case "Red Thread":
+        return r.temperatureF >= 65 && r.temperatureF <= 75 &&
+          ((r.rh !== null && r.rh >= 85) || r.estimatedWet);
+      case "Rust":
+        return r.temperatureF >= 65 && r.temperatureF <= 85 &&
+          ((r.rh !== null && r.rh >= 85) || r.estimatedWet);
+      default:
+        return 0;
+    }
+  });
+}
+
+function calculateTrend(disease, records) {
+  const first = records.slice(0, 36);
+  const later = records.slice(36, 72);
+
+  if (first.length < 18 || later.length < 18) {
+    return { label: "Stable", className: "trend-stable" };
+  }
+
+  const earlyPressure = pressureCount(disease, first) / first.length;
+  const laterPressure = pressureCount(disease, later) / later.length;
+  const delta = laterPressure - earlyPressure;
+
+  if (delta >= 0.12) {
+    return { label: "Increasing", className: "trend-increasing" };
+  }
+
+  if (delta <= -0.12) {
+    return { label: "Easing", className: "trend-easing" };
+  }
+
+  return { label: "Stable", className: "trend-stable" };
+}
+
+function diseaseDetailProfile(result, records, timeZone) {
+  const next72 = records.slice(0, 72);
+  const trend = calculateTrend(result.disease, records);
+  const meanRH = average(next72.map((r) => r.rh));
+  const minTemp = minValue(next72.map((r) => r.temperatureF));
+  const maxTemp = maxValue(next72.map((r) => r.temperatureF));
+  const longestRH90 = longestConsecutiveRun(
+    next72,
+    (r) => r.rh !== null && r.rh > 90
+  );
+  const wetHours = countWhere(next72, (r) => r.estimatedWet);
+
+  const common = {
+    trend,
+    windowLabel: "Next 72 hours",
+    drivers: [],
+    explanation: "Forecast conditions are being evaluated for disease-favorable weather.",
+    method: "Weather favorability estimate"
+  };
+
+  if (result.disease === "Brown Patch") {
+    const days = groupByLocalCalendarDay(records, timeZone)
+      .filter((day) => day.records.length >= 20)
+      .slice(0, 4);
+
+    const warningDays = days.filter((day) => {
+      const rh = average(day.records.map((r) => r.rh));
+      const tF = minValue(day.records.map((r) => r.temperatureF));
+      if (rh === null || tF === null) return false;
+      const tC = fToC(tF);
+      const e = -21.5 + 0.15 * rh + 1.4 * tC - 0.033 * tC * tC;
+      return e >= 6;
+    }).length;
+
+    return {
+      ...common,
+      windowLabel: "Daily forecast model",
+      explanation:
+        result.risk === "Low"
+          ? "The current temperature and humidity pattern is not reaching the Brown Patch warning level in the forecast model."
+          : "Warm minimum temperatures and sustained humidity are creating a more favorable Brown Patch environment.",
+      drivers: [
+        `72-hour minimum temperature: ${formatNumber(minTemp)}°F`,
+        `72-hour mean relative humidity: ${formatNumber(meanRH)}%`,
+        `${warningDays} forecast day${warningDays === 1 ? "" : "s"} at or above the published warning index`
+      ],
+      method: "Published Brown Patch warning equation"
+    };
+  }
+
+  if (result.disease === "Pythium Blight") {
+    return {
+      ...common,
+      windowLabel: "Noon-to-noon warning windows",
+      explanation:
+        result.risk === "Low"
+          ? "The forecast is not currently combining hot temperatures with a sufficiently long period of very high humidity."
+          : "Hot conditions and prolonged very high humidity are moving toward or meeting the Pythium warning environment.",
+      drivers: [
+        `72-hour maximum temperature: ${formatNumber(maxTemp)}°F`,
+        `72-hour minimum temperature: ${formatNumber(minTemp)}°F`,
+        `Longest continuous RH above 90%: ${longestRH90} h`
+      ],
+      method: "Published Pythium weather-warning criteria"
+    };
+  }
+
+  if (result.disease === "Dollar Spot") {
+    const days = groupByLocalCalendarDay(records, timeZone)
+      .filter((day) => day.records.length >= 20)
+      .slice(0, 5);
+    const avgTemp = average(days.flatMap((d) => d.records).map((r) => r.temperatureF));
+    const avgRh = average(days.flatMap((d) => d.records).map((r) => r.rh));
+
+    return {
+      ...common,
+      windowLabel: "Rolling 5-day forecast pressure",
+      explanation:
+        "Dollar Spot pressure is estimated from sustained temperature and humidity across a multi-day window rather than a single humid period.",
+      drivers: [
+        `5-day forecast mean temperature: ${formatNumber(avgTemp)}°F`,
+        `5-day forecast mean relative humidity: ${formatNumber(avgRh)}%`,
+        "Current prototype uses forecast data until historical storage is added"
+      ],
+      method: "Published Dollar Spot equation adapted to forecast data"
+    };
+  }
+
+  if (result.disease === "Gray Leaf Spot") {
+    const favorableWetHours = countWhere(
+      next72,
+      (r) => r.estimatedWet && r.temperatureF !== null &&
+        r.temperatureF >= 68 && r.temperatureF <= 90
+    );
+
+    return {
+      ...common,
+      explanation:
+        "Gray Leaf Spot favorability increases when warm temperatures overlap with extended estimated canopy wetness.",
+      drivers: [
+        `Warm + estimated-wet hours: ${favorableWetHours} h`,
+        `Estimated wet hours from rain/dew proxy: ${wetHours} h`,
+        `72-hour maximum temperature: ${formatNumber(maxTemp)}°F`
+      ],
+      method: "Temperature × estimated wetness proxy"
+    };
+  }
+
+  if (result.disease === "Red Thread") {
+    const favorable = pressureCount("Red Thread", next72);
+    return {
+      ...common,
+      explanation:
+        "Cool-to-moderate temperatures combined with prolonged damp or humid weather can increase Red Thread favorability.",
+      drivers: [
+        `Favorable weather hours: ${favorable} h`,
+        `72-hour mean relative humidity: ${formatNumber(meanRH)}%`,
+        "Turf fertility/vigor is not available from NWS weather data"
+      ],
+      method: "Weather favorability estimate"
+    };
+  }
+
+  if (result.disease === "Rust") {
+    const favorable = pressureCount("Rust", next72);
+    return {
+      ...common,
+      explanation:
+        "Moderate temperatures and prolonged humid or wet periods can increase environmental favorability for turf rust.",
+      drivers: [
+        `Favorable weather hours: ${favorable} h`,
+        `Estimated wet hours: ${wetHours} h`,
+        "Turf growth and nutrient status are not available from NWS weather data"
+      ],
+      method: "Weather favorability estimate"
+    };
+  }
+
+  return common;
+}
+
+function enrichDiseaseResults(results, records, timeZone) {
+  return results.map((result) => ({
+    ...result,
+    ...diseaseDetailProfile(result, records, timeZone)
+  }));
+}
+
 function displayDiseaseResults(results) {
   diseaseGridElement.innerHTML = "";
 
   results.forEach((result) => {
-    const card = document.createElement("article");
+    const card = document.createElement("details");
     card.className = `disease-card ${riskClass(result.risk)}`;
 
+    const summary = document.createElement("summary");
+
+    const titleWrap = document.createElement("div");
+    titleWrap.className = "disease-title-wrap";
     const heading = document.createElement("h3");
+    heading.className = "disease-name";
     heading.textContent = result.disease;
+    const subline = document.createElement("div");
+    subline.className = "disease-subline";
+    subline.textContent = "Weather-based environmental favorability";
+    titleWrap.append(heading, subline);
 
-    const riskRow = document.createElement("div");
-    riskRow.className = "disease-result-row";
+    const risk = document.createElement("span");
+    risk.className = `risk-pill ${riskClass(result.risk)}`;
+    risk.textContent = `${result.risk} risk`;
 
-    const riskLabel = document.createElement("span");
-    riskLabel.textContent = "Risk";
+    const confidence = document.createElement("span");
+    confidence.className = "confidence-pill";
+    confidence.textContent = `${result.confidence} confidence`;
 
-    const riskValue = document.createElement("span");
-    riskValue.className = "result-value";
-    riskValue.textContent = result.risk;
+    const chevron = document.createElement("span");
+    chevron.className = "card-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = "⌄";
 
-    riskRow.append(riskLabel, riskValue);
+    summary.append(titleWrap, risk, confidence, chevron);
 
-    const confidenceRow = document.createElement("div");
-    confidenceRow.className = "disease-result-row";
+    const details = document.createElement("div");
+    details.className = "disease-details";
 
-    const confidenceLabel = document.createElement("span");
-    confidenceLabel.textContent = "Prediction Confidence";
+    const explanation = document.createElement("p");
+    explanation.className = "disease-explanation";
+    explanation.textContent = result.explanation;
 
-    const confidenceValue = document.createElement("span");
-    confidenceValue.className = "result-value";
-    confidenceValue.textContent = result.confidence;
+    const detailGrid = document.createElement("div");
+    detailGrid.className = "detail-grid";
 
-    confidenceRow.append(confidenceLabel, confidenceValue);
+    const trendBox = document.createElement("div");
+    trendBox.className = "detail-box";
+    const trendLabel = document.createElement("span");
+    trendLabel.textContent = "Forecast trend";
+    const trendValue = document.createElement("strong");
+    trendValue.className = result.trend.className;
+    trendValue.textContent =
+      result.trend.label === "Increasing"
+        ? "↑ Increasing"
+        : result.trend.label === "Easing"
+          ? "↓ Easing"
+          : "→ Stable";
+    trendBox.append(trendLabel, trendValue);
 
-    card.append(heading, riskRow, confidenceRow);
+    const windowBox = document.createElement("div");
+    windowBox.className = "detail-box";
+    const windowLabel = document.createElement("span");
+    windowLabel.textContent = "Forecast focus";
+    const windowValue = document.createElement("strong");
+    windowValue.textContent = result.windowLabel;
+    windowBox.append(windowLabel, windowValue);
+
+    detailGrid.append(trendBox, windowBox);
+
+    const driverList = document.createElement("ul");
+    driverList.className = "driver-list";
+    result.drivers.forEach((driver) => {
+      const item = document.createElement("li");
+      item.textContent = driver;
+      driverList.appendChild(item);
+    });
+
+    const methodTag = document.createElement("span");
+    methodTag.className = "method-tag";
+    methodTag.textContent = result.method;
+
+    details.append(explanation, detailGrid, driverList, methodTag);
+    card.append(summary, details);
     diseaseGridElement.appendChild(card);
   });
 }
 
-// ---------------------------------------------------------------------------
+function displayOverallOutlook(results) {
+  const credible = results.filter(
+    (result) => confidenceRank(result.confidence) >= 1
+  );
+  const pool = credible.length ? credible : results;
+
+  const sorted = [...pool].sort((a, b) => {
+    const riskDifference = riskRank(b.risk) - riskRank(a.risk);
+    if (riskDifference !== 0) return riskDifference;
+    return confidenceRank(b.confidence) - confidenceRank(a.confidence);
+  });
+
+  const lead = sorted[0] || { risk: "Low" };
+  const concerns = sorted.filter((item) => riskRank(item.risk) >= 1).slice(0, 2);
+
+  const title = overallOutlookElement.querySelector("h2");
+  const copy = overallOutlookElement.querySelector(".outlook-copy");
+
+  title.textContent = `${lead.risk} disease pressure`;
+
+  if (!concerns.length) {
+    copy.textContent =
+      "No meaningful weather-driven disease concern is currently standing out among the higher-confidence models.";
+  } else {
+    copy.textContent =
+      `${concerns.length} condition${concerns.length === 1 ? "" : "s"} to watch: ` +
+      concerns.map((item) => item.disease).join(" and ") + ".";
+  }
+
+  overallRiskBadgeElement.textContent = lead.risk;
+  overallRiskBadgeElement.className = `overall-risk ${riskClass(lead.risk)}`;
+}
+
+
 // 18. DEVELOPMENT METRICS PANEL
 // ---------------------------------------------------------------------------
 
@@ -1177,50 +1577,111 @@ function displayFeatureWindows(properties, hourlyRecords) {
 }
 
 // ---------------------------------------------------------------------------
-// 19. PAGE STATE
+
+
 // ---------------------------------------------------------------------------
+// 19. PAGE STATE + RESPONSIVE BEHAVIOR
+// ---------------------------------------------------------------------------
+
+function setStatus(message, isError = false) {
+  statusTextElement.textContent = message;
+  statusElement.classList.toggle("error", isError);
+}
 
 function setLoadingState(isLoading) {
   refreshButton.disabled = isLoading;
   locationSelectElement.disabled = isLoading;
+  zipInputElement.disabled = isLoading;
+  zipSubmitElement.disabled = isLoading;
 
   if (isLoading) {
-    refreshButton.textContent = "Loading...";
-    statusElement.textContent =
-      "Requesting the latest NWS forecast and recalculating disease risk...";
+    refreshButton.textContent = "Loading…";
+    zipSubmitElement.textContent = "Loading…";
+    setStatus("Requesting NWS forecast data and recalculating disease pressure...");
   } else {
-    refreshButton.textContent = "Refresh forecast";
+    refreshButton.textContent = "Refresh data";
+    zipSubmitElement.textContent = "View outlook";
   }
 }
 
 function showError(message) {
-  statusElement.textContent = message;
-  statusElement.classList.add("error");
+  setStatus(message, true);
 }
 
 function clearError() {
   statusElement.classList.remove("error");
 }
 
-// ---------------------------------------------------------------------------
-// 20. STARTUP + AUTO-REFRESH
-// ---------------------------------------------------------------------------
+function configureForecastDisclosure() {
+  const mobileQuery = window.matchMedia("(max-width: 760px)");
 
-loadWeather();
+  const sync = (event) => {
+    forecastDetailsElement.open = !event.matches;
+  };
+
+  sync(mobileQuery);
+
+  if (typeof mobileQuery.addEventListener === "function") {
+    mobileQuery.addEventListener("change", sync);
+  } else {
+    mobileQuery.addListener(sync);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 20. EVENTS + STARTUP
+// ---------------------------------------------------------------------------
 
 refreshButton.addEventListener("click", loadWeather);
 
+regionTabElement.addEventListener("click", () => {
+  switchLocationMode("region");
+});
+
+zipTabElement.addEventListener("click", () => {
+  switchLocationMode("zip");
+});
+
 locationSelectElement.addEventListener("change", (event) => {
   selectedLocationKey = event.target.value;
-  serviceAreaElement.textContent = LOCATIONS[selectedLocationKey].name;
-
-  // Clear the prior location's results while the new NWS request runs.
-  forecastGridElement.innerHTML = "";
-  diseaseGridElement.innerHTML =
-    `<div class="loading-card">Recalculating disease risk...</div>`;
-  lastUpdatedElement.textContent = "";
-
+  setActiveLocation(LOCATIONS[selectedLocationKey]);
+  zipErrorElement.textContent = "";
+  clearPreviousResults();
   loadWeather();
 });
+
+zipFormElement.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  zipErrorElement.textContent = "";
+
+  const zip = zipInputElement.value.trim();
+
+  if (!/^\d{5}$/.test(zip)) {
+    zipErrorElement.textContent = "Enter a valid 5-digit U.S. ZIP code.";
+    zipInputElement.focus();
+    return;
+  }
+
+  setLoadingState(true);
+  setStatus(`Looking up ZIP ${zip}...`);
+
+  try {
+    const location = await lookupZip(zip);
+    setActiveLocation(location);
+    clearPreviousResults("Loading ZIP-code outlook...");
+    await loadWeather();
+  } catch (error) {
+    console.error("ZIP lookup error:", error);
+    zipErrorElement.textContent =
+      error.status === 404
+        ? "That ZIP code could not be found. Try another U.S. ZIP code."
+        : "ZIP lookup is temporarily unavailable. Try again or use a preset region.";
+    showError("The ZIP location could not be loaded.");
+    setLoadingState(false);
+  }
+});
+
+configureForecastDisclosure();
+loadWeather();
 
 setInterval(loadWeather, 30 * 60 * 1000);

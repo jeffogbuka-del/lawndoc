@@ -3,119 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title> Lawn Weather Outlook</title>
+  <meta name="theme-color" content="#153d2a">
+  <meta name="description" content="Local weather translated into early indicators of turf disease pressure.">
+  <title>Lawn Health Weather Intelligence</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="container">
-      <p class="eyebrow">Local lawn intelligence</p>
-      <h1>Local Lawn Weather Outlook</h1>
-      <p id="service-area">Loading service area...</p>
-    </div>
-  </header>
+  <header class="hero">
+    <div class="hero-orb hero-orb-one" aria-hidden="true"></div>
+    <div class="hero-orb hero-orb-two" aria-hidden="true"></div>
 
-  <main class="container">
-    <section class="intro">
-      <h2>National Weather Service Forecast</h2>
-      <p>
-        The forecast and disease outlook below update from National Weather
-        Service grid data for the selected service location.
-      </p>
+    <div class="container hero-inner">
+      <nav class="topbar" aria-label="Site navigation">
+        <a class="brand" href="#top" aria-label="Lawn Health Weather Intelligence home">
+          <span class="brand-mark" aria-hidden="true">L</span>
+          <span>
+            <strong>Lawn Health</strong>
+            <small>Weather Intelligence</small>
+          </span>
+        </a>
+        <span class="source-pill">NWS-powered forecast</span>
+      </nav>
 
-      <div class="location-control">
-        <label for="location-select">Forecast location</label>
-        <select id="location-select">
-          <option value="washington-dc">Washington, DC</option>
-          <option value="maryland">Maryland — Annapolis</option>
-          <option value="virginia">Virginia — Richmond</option>
-          <option value="dallas">Dallas, Texas</option>
-        </select>
-        <p class="location-help">
-          Changing the location refreshes the forecast and recalculates all
-          disease-risk results on this page.
+      <div class="hero-copy" id="top">
+        <p class="eyebrow light">Early awareness for healthier turf</p>
+        <h1>See lawn disease pressure <span>before it becomes visible.</span></h1>
+        <p class="hero-subtitle">
+          Local weather translated into practical, forward-looking turf disease
+          risk using National Weather Service forecast data.
         </p>
       </div>
 
-      <div id="status" class="status" aria-live="polite">
-        Loading the latest forecast...
+      <section class="location-shell" aria-labelledby="location-heading">
+        <div class="location-header">
+          <div>
+            <p class="mini-label">Forecast area</p>
+            <h2 id="location-heading">Choose where to evaluate lawn conditions</h2>
+          </div>
+          <div class="current-location" aria-live="polite">
+            <span class="location-dot" aria-hidden="true"></span>
+            <span id="service-area">Washington, DC</span>
+          </div>
+        </div>
+
+        <div class="location-tabs" role="tablist" aria-label="Location lookup method">
+          <button class="location-tab is-active" id="region-tab" type="button" role="tab" aria-selected="true" aria-controls="region-panel" data-mode="region">
+            Select region
+          </button>
+          <button class="location-tab" id="zip-tab" type="button" role="tab" aria-selected="false" aria-controls="zip-panel" data-mode="zip">
+            Search ZIP code
+          </button>
+        </div>
+
+        <div class="location-panels">
+          <div class="location-panel is-active" id="region-panel" role="tabpanel" aria-labelledby="region-tab">
+            <label for="location-select">Primary test regions</label>
+            <div class="select-wrap">
+              <select id="location-select">
+                <option value="washington-dc">Washington, DC</option>
+                <option value="maryland">Maryland — Annapolis</option>
+                <option value="virginia">Virginia — Richmond</option>
+                <option value="dallas">Dallas, Texas</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="location-panel" id="zip-panel" role="tabpanel" aria-labelledby="zip-tab" hidden>
+            <form id="zip-form" class="zip-form" novalidate>
+              <label for="zip-input">U.S. ZIP code</label>
+              <div class="zip-row">
+                <input id="zip-input" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="e.g. 20001" aria-describedby="zip-help zip-error">
+                <button id="zip-submit" type="submit">View outlook</button>
+              </div>
+              <p id="zip-help" class="location-help">ZIP codes are converted to a representative latitude/longitude before requesting NWS data.</p>
+              <p id="zip-error" class="form-error" role="alert"></p>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <main>
+    <section class="overview-section">
+      <div class="container">
+        <div id="status" class="status-strip" aria-live="polite">
+          <span class="status-indicator" aria-hidden="true"></span>
+          <span>Loading the latest forecast...</span>
+        </div>
+
+        <div class="overview-grid">
+          <article class="outlook-card" id="overall-outlook">
+            <div>
+              <p class="mini-label">Lawn health outlook</p>
+              <h2>Evaluating conditions</h2>
+              <p class="outlook-copy">Weather-based disease pressure will appear here.</p>
+            </div>
+            <div class="overall-risk risk-neutral" id="overall-risk-badge">—</div>
+          </article>
+
+          <article class="update-card">
+            <p class="mini-label">Forecast status</p>
+            <p class="update-location" id="summary-location">Washington, DC</p>
+            <p id="last-updated" class="updated-time">Retrieving NWS grid forecast...</p>
+            <button id="refresh-button" class="text-button" type="button">Refresh data</button>
+          </article>
+        </div>
       </div>
-      <p id="last-updated" class="updated-time"></p>
-      <button id="refresh-button" class="refresh-button" type="button">
-        Refresh forecast
-      </button>
     </section>
 
-    <section aria-labelledby="forecast-heading">
-      <h2 id="forecast-heading">Upcoming Forecast</h2>
-      <div id="forecast-grid" class="forecast-grid"></div>
+    <section class="forecast-section">
+      <div class="container">
+        <details id="forecast-details" class="forecast-details" open>
+          <summary class="section-summary">
+            <span>
+              <span class="eyebrow dark">Local conditions</span>
+              <strong>Upcoming Forecast</strong>
+            </span>
+            <span class="summary-action">View 5 periods <span class="chevron" aria-hidden="true">⌄</span></span>
+          </summary>
+          <div id="forecast-grid" class="forecast-grid"></div>
+        </details>
+      </div>
     </section>
 
     <section class="disease-section" aria-labelledby="disease-heading">
-      <div class="section-heading-row">
-        <div>
-          <p class="eyebrow dark-eyebrow">Weather-based outlook</p>
-          <h2 id="disease-heading">Lawn Disease Risk</h2>
+      <div class="container">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow dark">Weather-based outlook</p>
+            <h2 id="disease-heading">Disease Pressure</h2>
+          </div>
+          <p class="section-note">
+            Risk describes weather favorability. Confidence reflects how well
+            the available weather data supports each estimate.
+          </p>
         </div>
-      </div>
 
-      <p class="section-note">
-        These results estimate environmental favorability from weather data.
-        They do not diagnose disease on an individual lawn.
-      </p>
-
-      <div id="disease-grid" class="disease-grid">
-        <div class="loading-card">Calculating disease risk...</div>
+        <div id="disease-grid" class="disease-grid">
+          <div class="loading-card">Calculating disease pressure...</div>
+        </div>
       </div>
     </section>
 
-    <details class="developer-panel">
-      <summary>Developer weather validation</summary>
-      <p>
-        This panel is for model validation. It shows the NWS-derived features
-        feeding the disease rules and can be removed from the customer-facing
-        version later.
-      </p>
-
-      <div id="data-availability" class="availability-grid"></div>
-
-      <div class="table-wrap">
-        <table class="metrics-table">
-          <thead>
-            <tr>
-              <th>Forecast window</th>
-              <th>Min temp</th>
-              <th>Max temp</th>
-              <th>Mean RH</th>
-              <th>RH ≥80%</th>
-              <th>RH ≥90%</th>
-              <th>Longest RH ≥90%</th>
-              <th>Min temp–dew spread</th>
-              <th>Forecast QPF*</th>
-              <th>Mean wind</th>
-            </tr>
-          </thead>
-          <tbody id="metrics-body">
-            <tr>
-              <td colspan="10">Loading weather metrics...</td>
-            </tr>
-          </tbody>
-        </table>
+    <section class="method-section">
+      <div class="container method-grid">
+        <div>
+          <p class="eyebrow dark">Built for transparency</p>
+          <h2>Weather risk, not a diagnosis.</h2>
+        </div>
+        <p>
+          The outlook identifies forecast conditions that may favor turf disease.
+          Actual disease occurrence also depends on turf species, irrigation,
+          fertility, drainage, site history, and pathogen presence.
+        </p>
       </div>
+    </section>
 
-      <p class="fine-print">
-        *QPF is forecast liquid precipitation. NWS QPF values are accumulation
-        periods; edge-overlapping periods are proportionally allocated for
-        this development view.
-      </p>
-    </details>
+    <section class="developer-section">
+      <div class="container">
+        <details class="developer-panel">
+          <summary>Developer weather validation</summary>
+          <p>
+            This panel exposes the NWS-derived features used by the current
+            disease rules. It is retained for model verification and can be
+            removed from a production customer view.
+          </p>
+
+          <div id="data-availability" class="availability-grid"></div>
+
+          <div class="table-wrap">
+            <table class="metrics-table">
+              <thead>
+                <tr>
+                  <th>Forecast window</th>
+                  <th>Min temp</th>
+                  <th>Max temp</th>
+                  <th>Mean RH</th>
+                  <th>RH ≥80%</th>
+                  <th>RH ≥90%</th>
+                  <th>Longest RH ≥90%</th>
+                  <th>Min temp–dew spread</th>
+                  <th>Forecast QPF*</th>
+                  <th>Mean wind</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-body">
+                <tr><td colspan="10">Loading weather metrics...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="fine-print">
+            *QPF is forecast liquid precipitation. Edge-overlapping NWS
+            accumulation periods are proportionally allocated in this development view.
+          </p>
+        </details>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container">
+    <div class="container footer-grid">
+      <div>
+        <strong>Lawn Health Weather Intelligence</strong>
+        <p>Early environmental awareness for proactive lawn care.</p>
+      </div>
       <p>
-        Weather data: National Weather Service. Disease results represent
-        weather-based environmental risk, not a confirmed lawn diagnosis.
+        Weather data from the National Weather Service. ZIP lookup uses a
+        representative postal-code coordinate. Disease results indicate
+        environmental favorability, not confirmed diagnosis.
       </p>
     </div>
   </footer>
