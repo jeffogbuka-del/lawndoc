@@ -314,6 +314,7 @@ function displayForecast(periods) {
     const rainChance =
       period.probabilityOfPrecipitation?.value ?? "Not available";
 
+    // Desktop: preserve the original five rich forecast cards.
     const card = document.createElement("article");
     card.className = "forecast-card";
 
@@ -341,7 +342,7 @@ function displayForecast(periods) {
 
     const summary = document.createElement("p");
     summary.className = "forecast-summary";
-    summary.textContent = period.shortForecast;
+    summary.textContent = period.shortForecast || "Forecast details unavailable";
 
     const meta = document.createElement("div");
     meta.className = "forecast-meta";
@@ -359,6 +360,70 @@ function displayForecast(periods) {
     meta.append(rain, wind);
     card.append(periodName, main, summary, meta);
     forecastGridElement.appendChild(card);
+
+    // Phone: compact, expandable list row for this same forecast period.
+    // The full NWS description, wind and precipitation remain accessible.
+    const row = document.createElement("details");
+    row.className = "forecast-list-item";
+
+    const rowSummary = document.createElement("summary");
+    rowSummary.className = "forecast-row-summary";
+
+    if (period.icon) {
+      const smallIcon = document.createElement("img");
+      smallIcon.className = "forecast-row-icon";
+      smallIcon.src = period.icon;
+      smallIcon.alt = "";
+      smallIcon.loading = "lazy";
+      rowSummary.appendChild(smallIcon);
+    } else {
+      const iconPlaceholder = document.createElement("span");
+      iconPlaceholder.className = "forecast-row-icon forecast-icon-placeholder";
+      iconPlaceholder.setAttribute("aria-hidden", "true");
+      iconPlaceholder.textContent = "☀";
+      rowSummary.appendChild(iconPlaceholder);
+    }
+
+    const rowText = document.createElement("span");
+    rowText.className = "forecast-row-text";
+    const rowPeriod = document.createElement("strong");
+    rowPeriod.className = "forecast-row-period";
+    rowPeriod.textContent = period.name;
+    const rowConditions = document.createElement("span");
+    rowConditions.className = "forecast-row-conditions";
+    rowConditions.textContent = period.shortForecast || "Forecast details unavailable";
+    rowText.append(rowPeriod, rowConditions);
+
+    const rowTemp = document.createElement("strong");
+    rowTemp.className = "forecast-row-temp";
+    rowTemp.textContent = `${period.temperature}°${period.temperatureUnit}`;
+
+    const rowChevron = document.createElement("span");
+    rowChevron.className = "forecast-row-chevron";
+    rowChevron.setAttribute("aria-hidden", "true");
+    rowChevron.textContent = "⌄";
+
+    rowSummary.append(rowText, rowTemp, rowChevron);
+
+    const fullDetails = document.createElement("div");
+    fullDetails.className = "forecast-row-details";
+    const fullDescription = document.createElement("p");
+    fullDescription.textContent =
+      period.detailedForecast || period.shortForecast || "Forecast details unavailable";
+
+    const detailChips = document.createElement("div");
+    detailChips.className = "forecast-row-chips";
+    const rainDetail = document.createElement("span");
+    rainDetail.textContent = rainChance === "Not available"
+      ? "Rain chance unavailable"
+      : `Chance of rain: ${rainChance}%`;
+    const windDetail = document.createElement("span");
+    windDetail.textContent = `Wind: ${period.windSpeed} ${period.windDirection}`;
+    detailChips.append(rainDetail, windDetail);
+
+    fullDetails.append(fullDescription, detailChips);
+    row.append(rowSummary, fullDetails);
+    forecastGridElement.appendChild(row);
   });
 }
 
@@ -890,10 +955,10 @@ function evaluateDryness(records, qpfPeriods, hours) {
 
     if (longestDryHours >= 20) {
       score += 1;
-      drivers.push(`${longestDryHours} consecutive forecast hours without QPF`);
+      drivers.push(`${longestDryHours} consecutive forecast hours without rainfall`);
     } else if (longestDryHours >= 14) {
       score += 0.5;
-      drivers.push(`${longestDryHours} consecutive forecast hours without QPF`);
+      drivers.push(`${longestDryHours} consecutive forecast hours without rainfall`);
     }
   } else {
     if (qpf < 0.25) {
@@ -1613,6 +1678,27 @@ function displayDiseaseResults(results) {
     const details = document.createElement("div");
     details.className = "disease-details";
 
+    const metaRow = document.createElement("div");
+    metaRow.className = "disease-meta-row";
+
+    const riskMeta = document.createElement("div");
+    riskMeta.className = "meta-stat";
+    const riskMetaLabel = document.createElement("span");
+    riskMetaLabel.textContent = "Risk";
+    const riskMetaValue = document.createElement("strong");
+    riskMetaValue.textContent = `${result.risk}`;
+    riskMeta.append(riskMetaLabel, riskMetaValue);
+
+    const confidenceMeta = document.createElement("div");
+    confidenceMeta.className = "meta-stat";
+    const confidenceMetaLabel = document.createElement("span");
+    confidenceMetaLabel.textContent = "Prediction confidence";
+    const confidenceMetaValue = document.createElement("strong");
+    confidenceMetaValue.textContent = `${result.confidence}`;
+    confidenceMeta.append(confidenceMetaLabel, confidenceMetaValue);
+
+    metaRow.append(riskMeta, confidenceMeta);
+
     const explanation = document.createElement("p");
     explanation.className = "disease-explanation";
     explanation.textContent = result.explanation;
@@ -1656,7 +1742,7 @@ function displayDiseaseResults(results) {
     methodTag.className = "method-tag";
     methodTag.textContent = result.method;
 
-    details.append(explanation, detailGrid, driverList, methodTag);
+    details.append(metaRow, explanation, detailGrid, driverList, methodTag);
     card.append(summary, details);
     diseaseGridElement.appendChild(card);
   });
