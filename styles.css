@@ -552,7 +552,12 @@ summary:focus-visible {
   grid-template-columns: minmax(170px, 0.42fr) minmax(0, 1.58fr);
   gap: 18px;
   align-items: stretch;
+  min-width: 0;
   margin-top: 16px;
+}
+
+.dryness-compact-row > * {
+  min-width: 0;
 }
 
 .dryness-result {
@@ -592,6 +597,9 @@ summary:focus-visible {
 .dryness-high { color: var(--high); }
 
 .dryness-details {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(255,255,255,0.55);
@@ -601,13 +609,16 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 100%;
+  gap: 12px;
+  min-width: 0;
+  min-height: 52px;
   padding: 14px 16px;
   color: var(--forest-800);
   font-size: 0.86rem;
   font-weight: 850;
   cursor: pointer;
   list-style: none;
+  overflow-wrap: anywhere;
 }
 
 .dryness-details summary::-webkit-details-marker {
@@ -625,13 +636,21 @@ summary:focus-visible {
 }
 
 .dryness-summary {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0 16px 15px;
+  overflow: hidden;
 }
 
 .dryness-summary p {
+  max-width: 100%;
   margin: 0;
   color: #405249;
   font-size: 0.9rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .dryness-driver-list {
@@ -645,9 +664,14 @@ summary:focus-visible {
 
 .dryness-driver-list li {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
   padding-left: 14px;
   color: var(--muted);
   font-size: 0.82rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .dryness-driver-list li::before {
