@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#153d2a">
   <meta name="description" content="Local weather translated into practical lawn health insight.">
-  <title>Lawn Doctor | Lawn Health Outlook</title>
+  <title>Lawn Doctor WeatherWise | Lawn Health Outlook</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,10 +19,20 @@
           <span class="brand-mark" aria-hidden="true">LD</span>
           <span>
             <strong>LAWN DOCTOR</strong>
-            <small>Weather Intelligence</small>
+            <small>WeatherWise</small>
           </span>
         </a>
-        <span class="source-pill">NWS-powered forecast</span>
+        <div class="topbar-actions">
+          <a
+            class="service-link"
+            href="https://www.lawndoctor.com/waldorf-md/?utm_source=googlebusinessprofile&utm_medium=organic&utm_campaign=Qiigo"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Explore Lawn Doctor Services
+          </a>
+          <span class="source-pill">NWS-powered forecast</span>
+        </div>
       </nav>
 
       <div class="hero-copy" id="top">
@@ -108,6 +118,51 @@
             <button id="refresh-button" class="text-button" type="button">Refresh data</button>
           </article>
         </div>
+      </div>
+    </section>
+
+    <section class="dryness-section" aria-labelledby="dryness-heading">
+      <div class="container">
+        <article class="dryness-card">
+          <div class="dryness-header">
+            <div>
+              <p class="mini-label">Moisture stress</p>
+              <h2 id="dryness-heading">Lawn Dryness Outlook</h2>
+              <p class="dryness-intro">
+                Short-term drying stress estimated from forecast rain, heat,
+                humidity, wind, and persistent dry conditions.
+              </p>
+            </div>
+
+            <div class="dryness-toggle" role="group" aria-label="Dryness forecast period">
+              <button class="dryness-period is-active" type="button" data-dryness-hours="24">
+                1 Day
+              </button>
+              <button class="dryness-period" type="button" data-dryness-hours="168">
+                7 Days
+              </button>
+            </div>
+          </div>
+
+          <div class="dryness-body">
+            <div class="dryness-result">
+              <span class="dryness-label">Dryness level</span>
+              <strong id="dryness-level" class="dryness-level dryness-neutral">—</strong>
+              <span id="dryness-window-label" class="dryness-window-label">Next 24 hours</span>
+            </div>
+
+            <div class="dryness-summary">
+              <p id="dryness-copy">
+                Loading NWS weather data to estimate short-term lawn drying stress.
+              </p>
+              <ul id="dryness-drivers" class="dryness-driver-list"></ul>
+            </div>
+          </div>
+
+          <p class="dryness-disclaimer">
+            This is a weather-based lawn dryness indicator, not an official drought classification.
+          </p>
+        </article>
       </div>
     </section>
 
@@ -204,7 +259,7 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div>
-        <strong>LAWN DOCTOR</strong>
+        <strong>LAWN DOCTOR WEATHERWISE</strong>
         <p>Early environmental awareness for proactive lawn care.</p>
       </div>
       <p>

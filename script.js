@@ -1,5 +1,5 @@
 /*
-  LAWN HEALTH WEATHER INTELLIGENCE - SPONSOR DEMO VERSION 5
+  LAWN DOCTOR WEATHERWISE - SPONSOR DEMO VERSION 7
   ---------------------------------------------------------
   Sponsor-facing improvements:
     - Four preset regions plus U.S. ZIP lookup
@@ -8,6 +8,8 @@
     - Responsive mobile presentation
     - Overall lawn health outlook
     - Expandable disease cards with risk, confidence, trend, and drivers
+    - 1-day / 7-day Lawn Dryness Outlook
+    - External Lawn Doctor services link
 
   Disease risk logic remains weather-based environmental favorability,
   not diagnosis of disease on a specific lawn.
@@ -50,6 +52,9 @@ let activeLocation = { ...LOCATIONS[selectedLocationKey] };
 const NUMBER_OF_FORECAST_CARDS = 5;
 const HOUR_MS = 60 * 60 * 1000;
 
+let currentDrynessContext = null;
+let selectedDrynessHours = 24;
+
 // ---------------------------------------------------------------------------
 // 2. PAGE ELEMENTS
 // ---------------------------------------------------------------------------
@@ -74,6 +79,11 @@ const forecastGridElement = document.getElementById("forecast-grid");
 const diseaseGridElement = document.getElementById("disease-grid");
 const overallOutlookElement = document.getElementById("overall-outlook");
 const overallRiskBadgeElement = document.getElementById("overall-risk-badge");
+const drynessLevelElement = document.getElementById("dryness-level");
+const drynessWindowLabelElement = document.getElementById("dryness-window-label");
+const drynessCopyElement = document.getElementById("dryness-copy");
+const drynessDriversElement = document.getElementById("dryness-drivers");
+const drynessPeriodButtons = [...document.querySelectorAll(".dryness-period")];
 const dataAvailabilityElement = document.getElementById("data-availability");
 const metricsBodyElement = document.getElementById("metrics-body");
 
@@ -128,11 +138,18 @@ function setActiveLocation(location) {
   updateLocationLabels();
 }
 
-function clearPreviousResults(message = "Recalculating disease pressure...") {
+function clearPreviousResults(message = "Recalculating lawn health outlook...") {
   forecastGridElement.innerHTML = "";
   diseaseGridElement.innerHTML = `<div class="loading-card">${message}</div>`;
   overallRiskBadgeElement.textContent = "—";
   overallRiskBadgeElement.className = "overall-risk risk-neutral";
+  drynessLevelElement.textContent = "—";
+  drynessLevelElement.className = "dryness-level dryness-neutral";
+  drynessWindowLabelElement.textContent =
+    selectedDrynessHours === 24 ? "Next 24 hours" : "Next 7 days";
+  drynessCopyElement.textContent =
+    "Loading NWS weather data to estimate short-term lawn drying stress.";
+  drynessDriversElement.innerHTML = "";
   lastUpdatedElement.textContent = "Retrieving NWS grid forecast...";
 }
 
@@ -230,6 +247,12 @@ async function loadWeather() {
 
     markEstimatedWetHours(hourlyRecords, qpfPeriods);
 
+    currentDrynessContext = {
+      hourlyRecords,
+      qpfPeriods
+    };
+    displayDrynessOutlook(selectedDrynessHours);
+
     const baseResults = evaluateAllDiseases(hourlyRecords, timeZone);
     const results = enrichDiseaseResults(
       baseResults,
@@ -250,7 +273,7 @@ async function loadWeather() {
       : `Page refreshed ${new Date().toLocaleString()}`;
 
     setStatus(
-      `Forecast loaded for ${activeLocation.name}. Disease pressure has been recalculated.`
+      `Forecast loaded for ${activeLocation.name}. Lawn health outlook has been recalculated.`
     );
   } catch (error) {
     console.error("Weather/model loading error:", error);
@@ -262,7 +285,13 @@ async function loadWeather() {
 
     forecastGridElement.innerHTML = "";
     diseaseGridElement.innerHTML =
-      `<div class="loading-card">Disease outlook unavailable.</div>`;
+      `<div class="loading-card">Lawn health outlook unavailable.</div>`;
+    currentDrynessContext = null;
+    drynessLevelElement.textContent = "Unavailable";
+    drynessLevelElement.className = "dryness-level dryness-neutral";
+    drynessCopyElement.textContent =
+      "The Lawn Dryness Outlook could not be calculated for this location.";
+    drynessDriversElement.innerHTML = "";
     dataAvailabilityElement.innerHTML = "";
     metricsBodyElement.innerHTML =
       `<tr><td colspan="10">Weather metrics unavailable.</td></tr>`;
@@ -745,7 +774,230 @@ function highestRisk(results) {
 }
 
 // ---------------------------------------------------------------------------
-// 11. BROWN PATCH
+// 11. LAWN DRYNESS OUTLOOK
+// ---------------------------------------------------------------------------
+
+/*
+  This is a transparent weather-based drying-stress heuristic, not an
+  official drought classification.
+
+  Inputs are all derived from the NWS forecast already used by the site:
+    - quantitative precipitation forecast (QPF)
+    - air temperature
+    - relative humidity
+    - wind speed
+    - persistence of rain-free forecast hours
+
+  The 1-day and 7-day modes use slightly different precipitation and
+  persistence bands because short-term lawn drying and week-long moisture
+  stress occur on different timescales.
+*/
+
+function drynessClass(level) {
+  return {
+    Low: "dryness-low",
+    Moderate: "dryness-moderate",
+    Elevated: "dryness-elevated",
+    High: "dryness-high"
+  }[level] || "dryness-neutral";
+}
+
+function drynessLevelFromScore(score) {
+  if (score >= 6) return "High";
+  if (score >= 4) return "Elevated";
+  if (score >= 2) return "Moderate";
+  return "Low";
+}
+
+function longestRainFreeRun(records) {
+  return longestConsecutiveRun(
+    records,
+    (record) => !record.qpfWet
+  );
+}
+
+function evaluateDryness(records, qpfPeriods, hours) {
+  if (!records.length) {
+    return {
+      level: "Low",
+      score: 0,
+      actualHours: 0,
+      drivers: [],
+      copy: "Not enough forecast data is available to estimate lawn drying stress."
+    };
+  }
+
+  const start = records[0].time;
+  const requestedEnd = new Date(start.getTime() + hours * HOUR_MS);
+  const windowRecords = records.filter(
+    (record) => record.time >= start && record.time < requestedEnd
+  );
+
+  const actualHours = windowRecords.length;
+  const end = actualHours
+    ? new Date(windowRecords[actualHours - 1].time.getTime() + HOUR_MS)
+    : requestedEnd;
+
+  const qpf = qpfForWindow(qpfPeriods, start, end);
+  const maxTemp = maxValue(windowRecords.map((record) => record.temperatureF));
+  const meanRH = average(windowRecords.map((record) => record.rh));
+  const meanWind = average(windowRecords.map((record) => record.windMph));
+  const longestDryHours = longestRainFreeRun(windowRecords);
+  const hotHours = countWhere(
+    windowRecords,
+    (record) => record.temperatureF !== null && record.temperatureF >= 90
+  );
+
+  let score = 0;
+  const drivers = [];
+
+  if (hours <= 24) {
+    if (qpf < 0.05) {
+      score += 2;
+      drivers.push("Little or no forecast rainfall");
+    } else if (qpf < 0.20) {
+      score += 1;
+      drivers.push("Only light forecast rainfall");
+    } else {
+      drivers.push(`${formatNumber(qpf, 2)} in forecast rainfall`);
+    }
+
+    if (maxTemp !== null && maxTemp >= 95) {
+      score += 2;
+      drivers.push(`Very hot conditions up to ${formatNumber(maxTemp, 0)}°F`);
+    } else if (maxTemp !== null && maxTemp >= 88) {
+      score += 1;
+      drivers.push(`Warm conditions up to ${formatNumber(maxTemp, 0)}°F`);
+    }
+
+    if (meanRH !== null && meanRH < 40) {
+      score += 2;
+      drivers.push(`Low mean humidity near ${formatNumber(meanRH, 0)}%`);
+    } else if (meanRH !== null && meanRH < 55) {
+      score += 1;
+      drivers.push(`Moderately dry air near ${formatNumber(meanRH, 0)}% RH`);
+    }
+
+    if (meanWind !== null && meanWind >= 15) {
+      score += 1;
+      drivers.push(`Drying winds averaging ${formatNumber(meanWind, 0)} mph`);
+    } else if (meanWind !== null && meanWind >= 10) {
+      score += 0.5;
+      drivers.push(`Breezy conditions averaging ${formatNumber(meanWind, 0)} mph`);
+    }
+
+    if (longestDryHours >= 20) {
+      score += 1;
+      drivers.push(`${longestDryHours} consecutive forecast hours without QPF`);
+    } else if (longestDryHours >= 14) {
+      score += 0.5;
+      drivers.push(`${longestDryHours} consecutive forecast hours without QPF`);
+    }
+  } else {
+    if (qpf < 0.25) {
+      score += 2;
+      drivers.push("Very limited rainfall across the forecast week");
+    } else if (qpf < 0.75) {
+      score += 1;
+      drivers.push("Below-moderate forecast rainfall for the week");
+    } else {
+      drivers.push(`${formatNumber(qpf, 2)} in forecast rainfall across the week`);
+    }
+
+    if (hotHours >= 36) {
+      score += 2;
+      drivers.push(`${hotHours} forecast hours at or above 90°F`);
+    } else if (hotHours >= 18) {
+      score += 1;
+      drivers.push(`${hotHours} forecast hours at or above 90°F`);
+    }
+
+    if (meanRH !== null && meanRH < 45) {
+      score += 2;
+      drivers.push(`Low week-average humidity near ${formatNumber(meanRH, 0)}%`);
+    } else if (meanRH !== null && meanRH < 60) {
+      score += 1;
+      drivers.push(`Relatively dry week-average humidity near ${formatNumber(meanRH, 0)}%`);
+    }
+
+    if (meanWind !== null && meanWind >= 15) {
+      score += 1;
+      drivers.push(`Persistent drying winds near ${formatNumber(meanWind, 0)} mph`);
+    } else if (meanWind !== null && meanWind >= 10) {
+      score += 0.5;
+      drivers.push(`Breezy week-average wind near ${formatNumber(meanWind, 0)} mph`);
+    }
+
+    if (longestDryHours >= 96) {
+      score += 2;
+      drivers.push(`${Math.round(longestDryHours / 24)}-day rain-free forecast stretch`);
+    } else if (longestDryHours >= 48) {
+      score += 1;
+      drivers.push(`${Math.round(longestDryHours / 24)}-day rain-free forecast stretch`);
+    }
+  }
+
+  score = Math.max(0, score);
+  const level = drynessLevelFromScore(score);
+
+  const copy = {
+    Low:
+      "Forecast conditions do not currently suggest meaningful short-term lawn drying stress.",
+    Moderate:
+      "Some drying conditions are present. Lawns may begin using stored soil moisture more quickly.",
+    Elevated:
+      "Several drying factors overlap. Moisture stress may increase, especially on exposed or shallow-rooted turf.",
+    High:
+      "Strong drying conditions are forecast. Lawns may lose moisture quickly without rainfall or irrigation."
+  }[level];
+
+  return {
+    level,
+    score,
+    actualHours,
+    qpf,
+    maxTemp,
+    meanRH,
+    meanWind,
+    longestDryHours,
+    hotHours,
+    drivers: drivers.slice(0, 4),
+    copy
+  };
+}
+
+function displayDrynessOutlook(hours) {
+  if (!currentDrynessContext) return;
+
+  const result = evaluateDryness(
+    currentDrynessContext.hourlyRecords,
+    currentDrynessContext.qpfPeriods,
+    hours
+  );
+
+  drynessLevelElement.textContent = result.level;
+  drynessLevelElement.className =
+    `dryness-level ${drynessClass(result.level)}`;
+
+  drynessWindowLabelElement.textContent =
+    hours === 24 ? "Next 24 hours" : "Next 7 days";
+
+  drynessCopyElement.textContent = result.copy;
+  drynessDriversElement.innerHTML = "";
+
+  const drivers = result.drivers.length
+    ? result.drivers
+    : ["Forecast conditions are relatively balanced"];
+
+  drivers.forEach((driver) => {
+    const item = document.createElement("li");
+    item.textContent = driver;
+    drynessDriversElement.appendChild(item);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 12. BROWN PATCH
 // ---------------------------------------------------------------------------
 
 /*
@@ -1426,7 +1678,7 @@ function displayOverallOutlook(results) {
   const title = overallOutlookElement.querySelector("h2");
   const copy = overallOutlookElement.querySelector(".outlook-copy");
 
-  title.textContent = `${lead.risk} disease pressure`;
+  title.textContent = `${lead.risk} disease favorability`;
 
   if (!concerns.length) {
     copy.textContent =
@@ -1597,7 +1849,7 @@ function setLoadingState(isLoading) {
   if (isLoading) {
     refreshButton.textContent = "Loading…";
     zipSubmitElement.textContent = "Loading…";
-    setStatus("Requesting NWS forecast data and recalculating disease pressure...");
+    setStatus("Requesting NWS forecast data and recalculating lawn health outlook...");
   } else {
     refreshButton.textContent = "Refresh data";
     zipSubmitElement.textContent = "View outlook";
@@ -1679,6 +1931,21 @@ zipFormElement.addEventListener("submit", async (event) => {
     showError("The ZIP location could not be loaded.");
     setLoadingState(false);
   }
+});
+
+drynessPeriodButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedDrynessHours = Number(button.dataset.drynessHours);
+
+    drynessPeriodButtons.forEach((candidate) => {
+      candidate.classList.toggle(
+        "is-active",
+        Number(candidate.dataset.drynessHours) === selectedDrynessHours
+      );
+    });
+
+    displayDrynessOutlook(selectedDrynessHours);
+  });
 });
 
 configureForecastDisclosure();
