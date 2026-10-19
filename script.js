@@ -79,6 +79,8 @@ const forecastGridElement = document.getElementById("forecast-grid");
 const diseaseGridElement = document.getElementById("disease-grid");
 const overallOutlookElement = document.getElementById("overall-outlook");
 const overallRiskBadgeElement = document.getElementById("overall-risk-badge");
+const outlookCopyElement = document.getElementById("outlook-copy");
+const outlookToggleElement = document.getElementById("outlook-toggle");
 const drynessLevelElement = document.getElementById("dryness-level");
 const drynessWindowLabelElement = document.getElementById("dryness-window-label");
 const drynessCopyElement = document.getElementById("dryness-copy");
@@ -1689,6 +1691,10 @@ function displayOverallOutlook(results) {
       concerns.map((item) => item.disease).join(" and ") + ".";
   }
 
+  outlookCopyElement.classList.remove("is-expanded");
+  outlookToggleElement.textContent = "Read more";
+  outlookToggleElement.setAttribute("aria-expanded", "false");
+
   overallRiskBadgeElement.textContent = lead.risk;
   overallRiskBadgeElement.className = `overall-risk ${riskClass(lead.risk)}`;
 }
@@ -1931,6 +1937,12 @@ zipFormElement.addEventListener("submit", async (event) => {
     showError("The ZIP location could not be loaded.");
     setLoadingState(false);
   }
+});
+
+outlookToggleElement.addEventListener("click", () => {
+  const expanded = outlookCopyElement.classList.toggle("is-expanded");
+  outlookToggleElement.textContent = expanded ? "Show less" : "Read more";
+  outlookToggleElement.setAttribute("aria-expanded", String(expanded));
 });
 
 drynessPeriodButtons.forEach((button) => {

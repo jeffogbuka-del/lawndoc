@@ -432,6 +432,19 @@ summary:focus-visible {
   color: var(--muted);
 }
 
+.outlook-toggle {
+  display: none;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--forest-700);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .overall-risk {
   display: grid;
   place-items: center;
@@ -484,13 +497,13 @@ summary:focus-visible {
 }
 
 .dryness-section {
-  padding: 28px 0 0;
+  padding: 22px 0 0;
 }
 
 .dryness-card {
-  padding: 28px 30px;
+  padding: 22px 24px;
   border: 1px solid var(--line);
-  border-radius: 22px;
+  border-radius: 20px;
   background:
     linear-gradient(135deg, rgba(250,248,239,0.96), rgba(244,249,245,0.96));
   box-shadow: var(--shadow-soft);
@@ -498,40 +511,35 @@ summary:focus-visible {
 
 .dryness-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 18px;
 }
 
 .dryness-header h2 {
   margin: 0;
-  font-size: clamp(1.45rem, 3vw, 2rem);
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
   letter-spacing: -0.025em;
-}
-
-.dryness-intro {
-  max-width: 720px;
-  margin: 8px 0 0;
-  color: var(--muted);
 }
 
 .dryness-toggle {
   display: inline-flex;
-  padding: 4px;
+  padding: 3px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--white);
 }
 
 .dryness-period {
-  min-width: 78px;
-  padding: 8px 13px;
+  min-width: 70px;
+  padding: 7px 11px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 850;
+  cursor: pointer;
 }
 
 .dryness-period.is-active {
@@ -539,25 +547,25 @@ summary:focus-visible {
   background: var(--forest-700);
 }
 
-.dryness-body {
+.dryness-compact-row {
   display: grid;
-  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1.58fr);
-  gap: 26px;
-  align-items: center;
-  margin-top: 24px;
+  grid-template-columns: minmax(170px, 0.42fr) minmax(0, 1.58fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-top: 16px;
 }
 
 .dryness-result {
-  padding: 20px;
+  padding: 14px 16px;
   border: 1px solid rgba(23,49,38,0.08);
-  border-radius: 18px;
-  background: rgba(255,255,255,0.76);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.78);
 }
 
 .dryness-label {
   display: block;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 850;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -565,16 +573,16 @@ summary:focus-visible {
 
 .dryness-level {
   display: block;
-  margin-top: 4px;
-  font-size: 1.65rem;
+  margin-top: 2px;
+  font-size: 1.45rem;
   letter-spacing: -0.025em;
 }
 
 .dryness-window-label {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .dryness-neutral { color: var(--muted); }
@@ -583,25 +591,63 @@ summary:focus-visible {
 .dryness-elevated { color: var(--elevated); }
 .dryness-high { color: var(--high); }
 
+.dryness-details {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.55);
+}
+
+.dryness-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 100%;
+  padding: 14px 16px;
+  color: var(--forest-800);
+  font-size: 0.86rem;
+  font-weight: 850;
+  cursor: pointer;
+  list-style: none;
+}
+
+.dryness-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.dryness-details summary::after {
+  content: "+";
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.dryness-details[open] summary::after {
+  content: "−";
+}
+
+.dryness-summary {
+  padding: 0 16px 15px;
+}
+
 .dryness-summary p {
   margin: 0;
   color: #405249;
+  font-size: 0.9rem;
 }
 
 .dryness-driver-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 18px;
-  margin: 14px 0 0;
+  gap: 7px 14px;
+  margin: 10px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .dryness-driver-list li {
   position: relative;
-  padding-left: 16px;
+  padding-left: 14px;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
 }
 
 .dryness-driver-list li::before {
@@ -609,19 +655,11 @@ summary:focus-visible {
   position: absolute;
   left: 0;
   top: 0.65em;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--forest-500);
   transform: translateY(-50%);
-}
-
-.dryness-disclaimer {
-  margin: 20px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.78rem;
 }
 
 .forecast-section,
@@ -1130,17 +1168,40 @@ summary:focus-visible {
   }
 
   .dryness-card {
-    padding: 22px;
+    padding: 18px;
   }
 
-  .dryness-header,
-  .dryness-body {
+  .dryness-header {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 12px;
   }
 
-  .dryness-toggle {
-    justify-self: start;
+  .dryness-compact-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .dryness-result {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2px 12px;
+    padding: 12px 14px;
+  }
+
+  .dryness-label,
+  .dryness-window-label {
+    grid-column: 1;
+  }
+
+  .dryness-level {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    text-align: right;
   }
 
   .dryness-driver-list {
@@ -1187,6 +1248,22 @@ summary:focus-visible {
   .outlook-card {
     align-items: flex-start;
     padding: 22px;
+  }
+
+  .outlook-copy {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+  }
+
+  .outlook-copy.is-expanded {
+    display: block;
+    overflow: visible;
+  }
+
+  .outlook-toggle {
+    display: inline-block;
   }
 
   .overall-risk {

@@ -106,7 +106,8 @@
             <div>
               <p class="mini-label">Lawn health outlook</p>
               <h2>Evaluating conditions</h2>
-              <p class="outlook-copy">Your weather-based lawn health outlook will appear here.</p>
+              <p class="outlook-copy" id="outlook-copy">Your weather-based lawn health outlook will appear here.</p>
+              <button id="outlook-toggle" class="outlook-toggle" type="button" aria-expanded="false">Read more</button>
             </div>
             <div class="overall-risk risk-neutral" id="overall-risk-badge">—</div>
           </article>
@@ -128,40 +129,29 @@
             <div>
               <p class="mini-label">Moisture stress</p>
               <h2 id="dryness-heading">Lawn Dryness Outlook</h2>
-              <p class="dryness-intro">
-                Short-term drying stress estimated from forecast rain, heat,
-                humidity, wind, and persistent dry conditions.
-              </p>
             </div>
 
             <div class="dryness-toggle" role="group" aria-label="Dryness forecast period">
-              <button class="dryness-period is-active" type="button" data-dryness-hours="24">
-                1 Day
-              </button>
-              <button class="dryness-period" type="button" data-dryness-hours="168">
-                7 Days
-              </button>
+              <button class="dryness-period is-active" type="button" data-dryness-hours="24">1 Day</button>
+              <button class="dryness-period" type="button" data-dryness-hours="168">7 Days</button>
             </div>
           </div>
 
-          <div class="dryness-body">
+          <div class="dryness-compact-row">
             <div class="dryness-result">
               <span class="dryness-label">Dryness level</span>
               <strong id="dryness-level" class="dryness-level dryness-neutral">—</strong>
               <span id="dryness-window-label" class="dryness-window-label">Next 24 hours</span>
             </div>
 
-            <div class="dryness-summary">
-              <p id="dryness-copy">
-                Loading NWS weather data to estimate short-term lawn drying stress.
-              </p>
-              <ul id="dryness-drivers" class="dryness-driver-list"></ul>
-            </div>
+            <details class="dryness-details">
+              <summary>Why this outlook?</summary>
+              <div class="dryness-summary">
+                <p id="dryness-copy">Loading NWS weather data to estimate short-term lawn drying stress.</p>
+                <ul id="dryness-drivers" class="dryness-driver-list"></ul>
+              </div>
+            </details>
           </div>
-
-          <p class="dryness-disclaimer">
-            This is a weather-based lawn dryness indicator, not an official drought classification.
-          </p>
         </article>
       </div>
     </section>
