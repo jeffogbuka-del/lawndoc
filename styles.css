@@ -127,17 +127,28 @@ summary:focus-visible {
   text-decoration: none;
 }
 
-.brand-mark {
+.brand-logo-panel {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid rgba(255,255,255,0.28);
-  border-radius: 14px 14px 14px 5px;
-  background: rgba(255,255,255,0.11);
-  font-weight: 800;
-  font-size: 1.1rem;
-  backdrop-filter: blur(10px);
+  flex: 0 0 auto;
+  width: 103px;
+  height: 103px;
+  padding: 7px;
+  border: 1px solid rgba(255,255,255,0.64);
+  border-radius: 17px;
+  background: var(--cream);
+  box-shadow: 0 12px 28px rgba(1,19,8,0.14);
+}
+
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-product {
+  min-width: 0;
 }
 
 .brand strong,
@@ -146,13 +157,15 @@ summary:focus-visible {
 }
 
 .brand strong {
-  font-size: 0.98rem;
-  letter-spacing: 0.01em;
+  font-size: clamp(1.16rem, 1.7vw, 1.42rem);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
 }
 
 .brand small {
-  color: rgba(255,255,255,0.68);
-  font-size: 0.72rem;
+  margin-top: 5px;
+  color: rgba(255,255,255,0.72);
+  font-size: 0.77rem;
 }
 
 .source-pill {
@@ -1212,8 +1225,22 @@ summary:focus-visible {
     display: none;
   }
 
+  .topbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
   .topbar-actions {
-    margin-left: auto;
+    justify-content: flex-start;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .brand-logo-panel {
+    width: 84px;
+    height: 84px;
+    padding: 6px;
+    border-radius: 15px;
   }
 
   .service-link {
@@ -1575,15 +1602,31 @@ summary:focus-visible {
 
 @media (max-width: 480px) {
   .topbar {
-    padding: 20px 0;
+    padding: 18px 0;
+    gap: 10px;
+  }
+
+  .brand {
+    gap: 11px;
+  }
+
+  .brand-logo-panel {
+    width: 76px;
+    height: 76px;
+    padding: 5px;
+  }
+
+  .brand strong {
+    font-size: 1.2rem;
   }
 
   .brand small {
-    display: none;
+    font-size: 0.72rem;
   }
 
   .service-link {
-    max-width: 160px;
+    max-width: none;
+    min-height: 34px;
     text-align: center;
     line-height: 1.2;
   }
