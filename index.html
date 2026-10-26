@@ -50,47 +50,24 @@
       <section class="location-shell" aria-labelledby="location-heading">
         <div class="location-header">
           <div>
-            <p class="mini-label">Forecast area</p>
-            <h2 id="location-heading">Choose where to evaluate lawn conditions</h2>
+            <p class="mini-label">Service-area outlook</p>
+            <h2 id="location-heading">Check your lawn's local forecast</h2>
           </div>
           <div class="current-location" aria-live="polite">
             <span class="location-dot" aria-hidden="true"></span>
-            <span id="service-area">Washington, DC</span>
+            <span id="service-area">Enter a ZIP code</span>
           </div>
         </div>
 
-        <div class="location-tabs" role="tablist" aria-label="Location lookup method">
-          <button class="location-tab is-active" id="region-tab" type="button" role="tab" aria-selected="true" aria-controls="region-panel" data-mode="region">
-            Select region
-          </button>
-          <button class="location-tab" id="zip-tab" type="button" role="tab" aria-selected="false" aria-controls="zip-panel" data-mode="zip">
-            Search ZIP code
-          </button>
-        </div>
-
-        <div class="location-panels">
-          <div class="location-panel is-active" id="region-panel" role="tabpanel" aria-labelledby="region-tab">
-            <label for="location-select">Primary test regions</label>
-            <div class="select-wrap">
-              <select id="location-select">
-                <option value="washington-dc">Washington, DC</option>
-                <option value="maryland">Maryland — Annapolis</option>
-                <option value="virginia">Virginia — Richmond</option>
-                <option value="dallas">Dallas, Texas</option>
-              </select>
+        <div class="location-panels service-zip-panel">
+          <form id="zip-form" class="zip-form" novalidate>
+            <label for="zip-input">Enter your service-area ZIP code</label>
+            <div class="zip-row">
+              <input id="zip-input" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="e.g. 20601" aria-describedby="zip-error">
+              <button id="zip-submit" type="submit">View outlook</button>
             </div>
-          </div>
-
-          <div class="location-panel" id="zip-panel" role="tabpanel" aria-labelledby="zip-tab" hidden>
-            <form id="zip-form" class="zip-form" novalidate>
-              <label for="zip-input">U.S. ZIP code</label>
-              <div class="zip-row">
-                <input id="zip-input" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="e.g. 20001" aria-describedby="zip-error">
-                <button id="zip-submit" type="submit">View outlook</button>
-              </div>
-              <p id="zip-error" class="form-error" role="alert"></p>
-            </form>
-          </div>
+            <p id="zip-error" class="form-error" role="alert"></p>
+          </form>
         </div>
       </section>
     </div>
@@ -101,15 +78,15 @@
       <div class="container">
         <div id="status" class="status-strip" aria-live="polite">
           <span class="status-indicator" aria-hidden="true"></span>
-          <span>Loading the latest forecast...</span>
+          <span>Enter a ZIP code within our service area to view your lawn health outlook.</span>
         </div>
 
         <div class="overview-grid">
           <article class="outlook-card" id="overall-outlook">
             <div>
               <p class="mini-label">Lawn health outlook</p>
-              <h2>Evaluating conditions</h2>
-              <p class="outlook-copy" id="outlook-copy">Your weather-based lawn health outlook will appear here.</p>
+              <h2>Ready for your ZIP code</h2>
+              <p class="outlook-copy" id="outlook-copy">Enter a serviced ZIP code to see local weather conditions and disease favorability.</p>
               <button id="outlook-toggle" class="outlook-toggle" type="button" aria-expanded="false">Read more</button>
             </div>
             <div class="overall-risk risk-neutral" id="overall-risk-badge">—</div>
@@ -117,8 +94,8 @@
 
           <article class="update-card">
             <p class="mini-label">Forecast status</p>
-            <p class="update-location" id="summary-location">Washington, DC</p>
-            <p id="last-updated" class="updated-time">Retrieving NWS grid forecast...</p>
+            <p class="update-location" id="summary-location">Not selected</p>
+            <p id="last-updated" class="updated-time">Awaiting service-area ZIP code.</p>
             <button id="refresh-button" class="text-button" type="button">Refresh data</button>
           </article>
         </div>
@@ -150,7 +127,7 @@
             <details class="dryness-details">
               <summary>View moisture drivers</summary>
               <div class="dryness-summary">
-                <p id="dryness-copy">Loading NWS weather data to estimate short-term lawn drying stress.</p>
+                <p id="dryness-copy">Enter a serviced ZIP code to view moisture conditions.</p>
                 <ul id="dryness-drivers" class="dryness-driver-list"></ul>
               </div>
             </details>
@@ -188,7 +165,7 @@
         </div>
 
         <div id="disease-grid" class="disease-grid">
-          <div class="loading-card">Calculating lawn health outlook...</div>
+          <div class="loading-card">Enter a serviced ZIP code to display disease favorability.</div>
         </div>
       </div>
     </section>
@@ -249,6 +226,14 @@
     </section>
   </main>
 
+  <div id="availability-notice" class="availability-notice" role="alert" aria-live="assertive" hidden>
+    <div>
+      <strong>Service not available for this ZIP code</strong>
+      <p id="availability-notice-text">WeatherWise is currently available only in participating Lawn Doctor service areas.</p>
+    </div>
+    <button id="notice-dismiss" type="button" aria-label="Dismiss notice">×</button>
+  </div>
+
   <footer class="site-footer">
     <div class="container footer-grid">
       <div>
@@ -262,6 +247,7 @@
     </div>
   </footer>
 
+  <script src="service-areas.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

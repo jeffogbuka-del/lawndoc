@@ -19,35 +19,13 @@
 // 1. LOCATIONS + APPLICATION STATE
 // ---------------------------------------------------------------------------
 
-const LOCATIONS = {
-  "washington-dc": {
-    name: "Washington, DC",
-    latitude: 38.9072,
-    longitude: -77.0369,
-    source: "Preset region"
-  },
-  maryland: {
-    name: "Maryland — Annapolis",
-    latitude: 38.9784,
-    longitude: -76.4922,
-    source: "Preset region"
-  },
-  virginia: {
-    name: "Virginia — Richmond",
-    latitude: 37.5407,
-    longitude: -77.4360,
-    source: "Preset region"
-  },
-  dallas: {
-    name: "Dallas, Texas",
-    latitude: 32.7767,
-    longitude: -96.7970,
-    source: "Preset region"
-  }
-};
+// Service ZIPs are maintained separately in service-areas.js.
+// No forecast is requested until a ZIP has been checked against that list.
+let activeLocation = null;
 
-let selectedLocationKey = "washington-dc";
-let activeLocation = { ...LOCATIONS[selectedLocationKey] };
+function isAllowedZip(zip) {
+  return typeof zip === "string" && ALLOWED_ZIP_CODES.has(zip);
+}
 
 const NUMBER_OF_FORECAST_CARDS = 5;
 const HOUR_MS = 60 * 60 * 1000;
@@ -65,15 +43,13 @@ const statusElement = document.getElementById("status");
 const statusTextElement = statusElement.querySelector("span:last-child");
 const lastUpdatedElement = document.getElementById("last-updated");
 const refreshButton = document.getElementById("refresh-button");
-const locationSelectElement = document.getElementById("location-select");
 const zipFormElement = document.getElementById("zip-form");
 const zipInputElement = document.getElementById("zip-input");
 const zipSubmitElement = document.getElementById("zip-submit");
 const zipErrorElement = document.getElementById("zip-error");
-const regionTabElement = document.getElementById("region-tab");
-const zipTabElement = document.getElementById("zip-tab");
-const regionPanelElement = document.getElementById("region-panel");
-const zipPanelElement = document.getElementById("zip-panel");
+const availabilityNoticeElement = document.getElementById("availability-notice");
+const availabilityNoticeTextElement = document.getElementById("availability-notice-text");
+const noticeDismissElement = document.getElementById("notice-dismiss");
 const forecastDetailsElement = document.getElementById("forecast-details");
 const forecastGridElement = document.getElementById("forecast-grid");
 const diseaseGridElement = document.getElementById("disease-grid");
@@ -89,7 +65,6 @@ const drynessPeriodButtons = [...document.querySelectorAll(".dryness-period")];
 const dataAvailabilityElement = document.getElementById("data-availability");
 const metricsBodyElement = document.getElementById("metrics-body");
 
-locationSelectElement.value = selectedLocationKey;
 updateLocationLabels();
 
 // ---------------------------------------------------------------------------
@@ -131,49 +106,72 @@ async function getGenericJson(url) {
 // ---------------------------------------------------------------------------
 
 function updateLocationLabels() {
-  serviceAreaElement.textContent = activeLocation.name;
-  summaryLocationElement.textContent = activeLocation.name;
+  const label = activeLocation?.name || "Enter a ZIP code";
+  serviceAreaElement.textContent = label;
+  summaryLocationElement.textContent = activeLocation?.name || "Not selected";
 }
 
 function setActiveLocation(location) {
+  if (!isAllowedZip(location?.zip)) {
+    throw new Error("A serviced ZIP code must be selected before loading weather.");
+  }
   activeLocation = { ...location };
   updateLocationLabels();
 }
 
-function clearPreviousResults(message = "Recalculating lawn health outlook...") {
+function closeAvailabilityNotice() {
+  availabilityNoticeElement.hidden = true;
+}
+
+function showAvailabilityNotice(zip) {
+  availabilityNoticeTextElement.textContent =
+    `ZIP ${zip} is not currently within the Lawn Doctor WeatherWise service area. No forecast was requested.`;
+  availabilityNoticeElement.hidden = false;
+}
+
+function rejectZip(zip) {
+  // Remove any previously loaded data. A rejected ZIP never triggers NWS.
+  activeLocation = null;
+  currentDrynessContext = null;
+  updateLocationLabels();
+  clearPreviousResults("This ZIP code is outside the currently supported service area.");
+  zipErrorElement.textContent =
+    `WeatherWise is not yet available in ZIP code ${zip}. Try a ZIP within our service area.`;
+  showAvailabilityNotice(zip);
+  showError("Service not available in that ZIP code. No weather data was requested.");
+  refreshButton.disabled = true;
+}
+
+function clearPreviousResults(message = "Enter a serviced ZIP code to view weather conditions.") {
   forecastGridElement.innerHTML = "";
-  diseaseGridElement.innerHTML = `<div class="loading-card">${message}</div>`;
+  diseaseGridElement.innerHTML = "";
+  const emptyMessage = document.createElement("div");
+  emptyMessage.className = "loading-card";
+  emptyMessage.textContent = message;
+  diseaseGridElement.appendChild(emptyMessage);
+  currentDrynessContext = null;
+  overallOutlookElement.querySelector("h2").textContent = "Ready for your ZIP code";
+  outlookCopyElement.textContent = "Enter a serviced ZIP code to see local weather conditions and disease favorability.";
+  outlookCopyElement.classList.remove("is-expanded");
+  outlookToggleElement.textContent = "Read more";
+  outlookToggleElement.setAttribute("aria-expanded", "false");
   overallRiskBadgeElement.textContent = "—";
   overallRiskBadgeElement.className = "overall-risk risk-neutral";
   drynessLevelElement.textContent = "—";
   drynessLevelElement.className = "dryness-level dryness-neutral";
   drynessWindowLabelElement.textContent =
     selectedDrynessHours === 24 ? "Next 24 hours" : "Next 7 days";
-  drynessCopyElement.textContent =
-    "Loading NWS weather data to estimate short-term lawn drying stress.";
+  drynessCopyElement.textContent = "Enter a serviced ZIP code to view moisture conditions.";
   drynessDriversElement.innerHTML = "";
-  lastUpdatedElement.textContent = "Retrieving NWS grid forecast...";
-}
-
-function switchLocationMode(mode) {
-  const regionActive = mode === "region";
-
-  regionTabElement.classList.toggle("is-active", regionActive);
-  zipTabElement.classList.toggle("is-active", !regionActive);
-  regionTabElement.setAttribute("aria-selected", String(regionActive));
-  zipTabElement.setAttribute("aria-selected", String(!regionActive));
-
-  regionPanelElement.hidden = !regionActive;
-  zipPanelElement.hidden = regionActive;
-  regionPanelElement.classList.toggle("is-active", regionActive);
-  zipPanelElement.classList.toggle("is-active", !regionActive);
-
-  if (!regionActive) {
-    window.setTimeout(() => zipInputElement.focus(), 50);
-  }
+  dataAvailabilityElement.innerHTML = "";
+  metricsBodyElement.innerHTML = "<tr><td colspan='10'>No forecast requested.</td></tr>";
+  lastUpdatedElement.textContent = "Awaiting service-area ZIP code.";
 }
 
 async function lookupZip(zip) {
+  if (!isAllowedZip(zip)) {
+    throw new Error("ZIP lookup blocked outside the approved service area.");
+  }
   const data = await getGenericJson(
     `https://api.zippopotam.us/us/${encodeURIComponent(zip)}`
   );
@@ -208,11 +206,18 @@ async function lookupZip(zip) {
 // ---------------------------------------------------------------------------
 
 async function loadWeather() {
+  // Covers Refresh, scheduled refreshes, and any accidental programmatic calls.
+  if (!activeLocation || !isAllowedZip(activeLocation.zip)) {
+    refreshButton.disabled = true;
+    return;
+  }
+
   setLoadingState(true);
   clearError();
 
   try {
     updateLocationLabels();
+    lastUpdatedElement.textContent = "Retrieving NWS grid forecast...";
 
     const pointsUrl =
       `https://api.weather.gov/points/` +
@@ -1933,8 +1938,7 @@ function setStatus(message, isError = false) {
 }
 
 function setLoadingState(isLoading) {
-  refreshButton.disabled = isLoading;
-  locationSelectElement.disabled = isLoading;
+  refreshButton.disabled = isLoading || !activeLocation || !isAllowedZip(activeLocation.zip);
   zipInputElement.disabled = isLoading;
   zipSubmitElement.disabled = isLoading;
 
@@ -1977,50 +1981,53 @@ function configureForecastDisclosure() {
 // ---------------------------------------------------------------------------
 
 refreshButton.addEventListener("click", loadWeather);
-
-regionTabElement.addEventListener("click", () => {
-  switchLocationMode("region");
-});
-
-zipTabElement.addEventListener("click", () => {
-  switchLocationMode("zip");
-});
-
-locationSelectElement.addEventListener("change", (event) => {
-  selectedLocationKey = event.target.value;
-  setActiveLocation(LOCATIONS[selectedLocationKey]);
-  zipErrorElement.textContent = "";
-  clearPreviousResults();
-  loadWeather();
-});
+noticeDismissElement.addEventListener("click", closeAvailabilityNotice);
 
 zipFormElement.addEventListener("submit", async (event) => {
   event.preventDefault();
   zipErrorElement.textContent = "";
+  closeAvailabilityNotice();
 
   const zip = zipInputElement.value.trim();
 
   if (!/^\d{5}$/.test(zip)) {
-    zipErrorElement.textContent = "Enter a valid 5-digit U.S. ZIP code.";
+    activeLocation = null;
+    updateLocationLabels();
+    clearPreviousResults("Enter a valid five-digit service-area ZIP code.");
+    zipErrorElement.textContent = "Please enter a valid five-digit ZIP code.";
+    showError("A valid service-area ZIP code is required before weather can load.");
+    refreshButton.disabled = true;
     zipInputElement.focus();
     return;
   }
 
+  // No geocoding and no weather API call is permitted for an unlisted ZIP.
+  if (!isAllowedZip(zip)) {
+    rejectZip(zip);
+    return;
+  }
+
+  activeLocation = null;
+  updateLocationLabels();
+  clearPreviousResults("Loading your service-area forecast...");
   setLoadingState(true);
-  setStatus(`Looking up ZIP ${zip}...`);
+  setStatus(`Checking ZIP ${zip}...`);
 
   try {
     const location = await lookupZip(zip);
     setActiveLocation(location);
-    clearPreviousResults("Loading ZIP-code outlook...");
     await loadWeather();
   } catch (error) {
     console.error("ZIP lookup error:", error);
+    activeLocation = null;
+    updateLocationLabels();
+    clearPreviousResults("Unable to load a forecast for that ZIP code.");
     zipErrorElement.textContent =
       error.status === 404
-        ? "That ZIP code could not be found. Try another U.S. ZIP code."
-        : "ZIP lookup is temporarily unavailable. Try again or use a preset region.";
-    showError("The ZIP location could not be loaded.");
+        ? "This serviced ZIP code could not be located by the weather lookup provider."
+        : "Weather lookup is temporarily unavailable. Please try again.";
+    showError("Weather could not be loaded. Please try again.");
+  } finally {
     setLoadingState(false);
   }
 });
@@ -2047,6 +2054,10 @@ drynessPeriodButtons.forEach((button) => {
 });
 
 configureForecastDisclosure();
-loadWeather();
+updateLocationLabels();
+clearPreviousResults("Enter a serviced ZIP code to display disease favorability.");
+refreshButton.disabled = true;
+setStatus("Enter a ZIP code within our service area to view your lawn health outlook.");
 
+// The scheduled refresh is guarded by loadWeather(): no ZIP, no request.
 setInterval(loadWeather, 30 * 60 * 1000);

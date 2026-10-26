@@ -1681,3 +1681,51 @@ summary:focus-visible {
     margin-top: 14px;
   }
 }
+
+/* Territory-restricted ZIP search — clean, single-field location experience */
+.service-zip-panel {
+  max-width: 540px;
+  margin-top: 18px;
+}
+.service-zip-panel .zip-form {
+  width: 100%;
+  max-width: 100%;
+}
+.availability-notice[hidden] { display: none !important; }
+.availability-notice {
+  position: fixed;
+  z-index: 300;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  right: 24px;
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 18px 18px 18px 20px;
+  border-radius: 16px;
+  border: 1px solid #dcb6a6;
+  border-left: 5px solid #b54833;
+  color: #4c2a21;
+  background: #fff9f5;
+  box-shadow: 0 18px 44px rgba(30, 40, 30, 0.2);
+}
+.availability-notice strong { font-weight: 850; }
+.availability-notice p {
+  margin: 5px 0 0;
+  color: #754a40;
+  font-size: 0.89rem;
+  overflow-wrap: anywhere;
+}
+.availability-notice button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  padding: 0 4px;
+  color: #754a40;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .availability-notice { right: 16px; bottom: 16px; }
+  .service-zip-panel { max-width: 100%; }
+}
